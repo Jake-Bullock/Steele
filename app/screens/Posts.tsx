@@ -4,23 +4,18 @@ import { useRouter } from 'expo-router'
 import GlobalStyles from '../../assets/styles/GlobalStyles'
 import Button from '../components/Button'
 
-const Dashboard = (): JSX.Element => {
+const Posts = (): JSX.Element => {
   const router = useRouter()
 
   return (
     <View style={GlobalStyles.container}>
       <View style={GlobalStyles.contentContainer}>
-        <Text style={GlobalStyles.title}>Dashboard</Text>
-        <Text style={GlobalStyles.subtitle}>Manage your feeders</Text>
-        
-        <Button 
-          title="Go to Feeders"
-          variant="primary"
-          onPress={() => router.push('/screens/MainPage')}
-        />
+        <Text style={GlobalStyles.title}>Posts</Text>
+        <Text style={GlobalStyles.subtitle}>Manage/view your posts</Text>
+    
       </View>
     </View>
   )
 }
 
-export default Dashboard
+export default Posts

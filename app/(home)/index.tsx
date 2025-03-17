@@ -18,8 +18,8 @@ export default function HomePage(): JSX.Element {
         {session ? (
           <View style={GlobalStyles.buttonContainer}>
             <Button 
-              title="Dashboard"
-              onPress={() => router.push('/screens/Dashboard')}
+              title="Posts"
+              onPress={() => router.push('/screens/Posts')}
             />
             
             <Button 

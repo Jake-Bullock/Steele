@@ -16,7 +16,7 @@ export default function Navbar() {
   if (!initialized) {
     return (
       <View style={GlobalStyles.navbar}>
-        <Text style={GlobalStyles.navbarLogo}>nibbleMate</Text>
+        <Text style={GlobalStyles.navbarLogo}>Stele</Text>
         <ActivityIndicator size="small" />
       </View>
     );
@@ -30,7 +30,7 @@ export default function Navbar() {
   return (
     <View style={GlobalStyles.navbar}>
       <TouchableOpacity onPress={() => router.push('/')}>
-        <Text style={GlobalStyles.navbarLogo}>nibbleMate</Text>
+        <Text style={GlobalStyles.navbarLogo}>Stele</Text>
       </TouchableOpacity>
       
       <View style={GlobalStyles.navLinks}>
