@@ -12,8 +12,8 @@ export default function HomePage(): JSX.Element {
   return (
     <View style={GlobalStyles.container}>
       <View style={GlobalStyles.contentContainer}>
-        <Text style={GlobalStyles.title}>Welcome to nibbleMate</Text>
-        <Text style={GlobalStyles.subtitle}>Your Food Journey Starts Here</Text>
+        <Text style={GlobalStyles.title}>Welcome to Stele</Text>
+        <Text style={GlobalStyles.subtitle}>Store your memories</Text>
         
         {session ? (
           <View style={GlobalStyles.buttonContainer}>
