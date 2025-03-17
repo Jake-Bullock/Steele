@@ -14,32 +14,41 @@ export default function SignUpScreen(): JSX.Element {
 
   const signUpWithEmail = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields')
-      return
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
     }
-
-    setLoading(true)
+  
+    setLoading(true);
     try {
+      // Attempt to sign up the user
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-      })
-
-      if (error) throw error
-
+      });
+  
+      if (error) {
+        // Handle duplicate email error
+        if (error.message.includes('already registered')) {
+          Alert.alert('Error', 'This email is already registered. Please sign in.');
+          return;
+        }
+        throw error;
+      }
+  
       if (data?.user) {
         Alert.alert(
-          'Success', 
+          'Success',
           'Registration successful! Please check your email for verification.',
           [{ text: 'OK', onPress: () => router.replace('/(auth)/sign-in') }]
-        )
+        );
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message)
+      Alert.alert('Error', error.message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  
+  };
 
   return (
     <View style={GlobalStyles.container}>
