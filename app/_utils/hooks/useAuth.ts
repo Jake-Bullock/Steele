@@ -1,52 +1,47 @@
-import { useState } from 'react'
-import supabase from '../lib/supabase'
-import { useRouter } from 'expo-router'
+import { useState, useEffect } from 'react';
+import supabase from '../lib/supabase';
+import { useRouter } from 'expo-router';
 
 export function useAuth() {
-  const [loading, setLoading] = useState(false)
-  const router = useRouter()
+  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState<any>(null); // Store the authenticated user
+  const router = useRouter();
 
-  const signIn = async (email: string, password: string) => {
-    try {
-      setLoading(true)
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) throw error
-      router.replace('/(home)')
-    } catch (error: any) {
-      throw error
-    } finally {
-      setLoading(false)
-    }
-  }
+  useEffect(() => {
+    // Fetch the current session on mount
+    const fetchUser = async () => {
+      const { data } = await supabase.auth.getSession();
+      setUser(data?.session?.user || null);
+    };
 
-  const signUp = async (email: string, password: string) => {
-    try {
-      setLoading(true)
-      const { error } = await supabase.auth.signUp({ email, password })
-      if (error) throw error
-      return true
-    } catch (error: any) {
-      throw error
-    } finally {
-      setLoading(false)
-    }
-  }
+    fetchUser();
+
+    // Listen for auth state changes
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
+
+    return () => {
+      subscription.subscription?.unsubscribe();
+    };
+  }, []);
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
-      router.replace('/(auth)/sign-in')
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      setUser(null); // Clear the user on sign out
+      router.replace('/(auth)/sign-in');
     } catch (error: any) {
-      throw error
+      throw error;
     }
-  }
+  };
 
   return {
-    signIn,
-    signUp,
+    user, // Expose the user object
     signOut,
-    loading
-  }
+    loading,
+  };
 }
-export default useAuth
+
+export default useAuth;

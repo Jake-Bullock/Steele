@@ -12,7 +12,10 @@ const Posts = (): JSX.Element => {
       <View style={GlobalStyles.contentContainer}>
         <Text style={GlobalStyles.title}>Posts</Text>
         <Text style={GlobalStyles.subtitle}>Manage/view your posts</Text>
-    
+        <Button
+          title="Create New Post"
+          onPress={() => router.push('/screens/CreatePost')}
+        />
       </View>
     </View>
   )

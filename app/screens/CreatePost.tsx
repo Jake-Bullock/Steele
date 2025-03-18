@@ -1,0 +1,252 @@
+import React, { useState } from 'react';
+import { View, Text, TextInput, Button, Alert, Image, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import supabase from '../_utils/lib/supabase';
+import { useAuth } from '../_utils/hooks/useAuth'; // Assume you have an auth context
+
+export default function CreatePost() {
+  const [title, setTitle] = useState<string>('');
+  const [description, setDescription] = useState<string>('');
+  const [images, setImages] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth(); // Get current authenticated user
+
+  // Function to pick multiple images
+  const pickImages = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: true,
+    });
+
+    if (!result.canceled) {
+      const newImageUris = result.assets.map(asset => asset.uri);
+      setImages(prevImages => [...prevImages, ...newImageUris]);
+    }
+  };
+
+  // Function to remove an image from the selection
+  const removeImage = (index: number) => {
+    setImages(prevImages => prevImages.filter((_, i) => i !== index));
+  };
+
+  // Function to upload multiple images to Supabase
+  const uploadImages = async () => {
+    if (images.length === 0) {
+      Alert.alert('Error', 'Please select at least one image.');
+      return [];
+    }
+
+    const uploadedUrls: string[] = [];
+
+    try {
+      for (const imageUri of images) {
+        const response = await fetch(imageUri);
+        const blob = await response.blob();
+        const fileName = `post_images/${Date.now()}-${Math.random().toString(36).substring(2)}.png`;
+
+        const { data, error } = await supabase.storage
+          .from('posts')
+          .upload(fileName, blob, { contentType: 'image/png' });
+
+        if (error) throw error;
+
+        // Get the public URL for the uploaded image
+        const { data: publicUrlData } = supabase.storage
+          .from('posts')
+          .getPublicUrl(fileName);
+
+        if (publicUrlData?.publicUrl) {
+          uploadedUrls.push(publicUrlData.publicUrl);
+        }
+      }
+
+      return uploadedUrls;
+    } catch (error: any) {
+      Alert.alert('Error uploading images', error.message);
+      return [];
+    }
+  };
+
+  // Function to handle post creation
+  const handleCreatePost = async () => {
+    if (!title || !description) {
+      Alert.alert('Error', 'Please fill in both title and description.');
+      return;
+    }
+
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to create a post.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // 1. Upload all images
+      const imageUrls = await uploadImages();
+      if (imageUrls.length === 0 && images.length > 0) {
+        setLoading(false);
+        return; // Error already shown in uploadImages
+      }
+
+      // 2. Create the post
+      const { data: postData, error: postError } = await supabase
+        .from('post')
+        .insert([{ 
+          title, 
+          description, 
+          user_id: user.id,
+          // Optional: Add QR code URL if you have it
+          // qr_code_url: qrCodeUrl
+        }])
+        .select();
+
+      if (postError) throw postError;
+      
+      if (!postData || postData.length === 0) {
+        throw new Error('Failed to create post');
+      }
+
+      const postId = postData[0].id;
+
+      // 3. Associate images with the post
+      if (imageUrls.length > 0) {
+        const imageRecords = imageUrls.map(url => ({
+          post_id: postId,
+          image_url: url
+        }));
+
+        const { error: imagesError } = await supabase
+          .from('post_images')
+          .insert(imageRecords);
+
+        if (imagesError) throw imagesError;
+      }
+
+      Alert.alert('Success', 'Post created successfully!');
+      
+      // Reset form
+      setTitle('');
+      setDescription('');
+      setImages([]);
+    } catch (error: any) {
+      Alert.alert('Error creating post', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <ScrollView style={styles.container}>
+      <Text style={styles.title}>Create a Post</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Enter Title"
+        value={title}
+        onChangeText={setTitle}
+      />
+      <TextInput
+        style={styles.inputMultiline}
+        placeholder="Enter Description"
+        value={description}
+        onChangeText={setDescription}
+        multiline
+        numberOfLines={4}
+      />
+      
+      <Button title="Select Images" onPress={pickImages} />
+      
+      {images.length > 0 && (
+        <View style={styles.imagesContainer}>
+          <Text style={styles.subtitle}>Selected Images: {images.length}</Text>
+          <ScrollView horizontal style={styles.imageScroll}>
+            {images.map((img, index) => (
+              <View key={index} style={styles.imageWrapper}>
+                <Image source={{ uri: img }} style={styles.image} />
+                <TouchableOpacity 
+                  style={styles.removeButton} 
+                  onPress={() => removeImage(index)}
+                >
+                  <Text style={styles.removeButtonText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+      
+      <Button 
+        title={loading ? "Creating Post..." : "Create Post"} 
+        onPress={handleCreatePost} 
+        disabled={loading || !title || !description}
+      />
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#fff',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  subtitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 10,
+    marginBottom: 20,
+    borderRadius: 5,
+  },
+  inputMultiline: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 10,
+    marginBottom: 20,
+    borderRadius: 5,
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  imagesContainer: {
+    marginVertical: 15,
+  },
+  imageScroll: {
+    flexDirection: 'row',
+    marginBottom: 20,
+  },
+  imageWrapper: {
+    position: 'relative',
+    marginRight: 10,
+  },
+  image: {
+    width: 150,
+    height: 150,
+    borderRadius: 8,
+  },
+  removeButton: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  removeButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+});
