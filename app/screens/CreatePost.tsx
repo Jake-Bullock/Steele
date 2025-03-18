@@ -3,6 +3,8 @@ import { View, Text, TextInput, Button, Alert, Image, StyleSheet, ScrollView, To
 import * as ImagePicker from 'expo-image-picker';
 import supabase from '../_utils/lib/supabase';
 import { useAuth } from '../_utils/hooks/useAuth'; // Assume you have an auth context
+import { decode } from 'base64-arraybuffer'
+import * as FileSystem from 'expo-file-system'; 
 
 export default function CreatePost() {
   const [title, setTitle] = useState<string>('');
@@ -35,34 +37,35 @@ export default function CreatePost() {
       Alert.alert('Error', 'Please select at least one image.');
       return [];
     }
-
-    const uploadedUrls: string[] = [];
-
+  
+    const uploadedFileNames: string[] = [];
+  
     try {
       for (const imageUri of images) {
-        const response = await fetch(imageUri);
-        const blob = await response.blob();
+        // Convert the image to base64
+        const base64 = await FileSystem.readAsStringAsync(imageUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+  
+        // Generate a unique file name
         const fileName = `post_images/${Date.now()}-${Math.random().toString(36).substring(2)}.png`;
-
-        const { data, error } = await supabase.storage
-          .from('posts')
-          .upload(fileName, blob, { contentType: 'image/png' });
-
-        if (error) throw error;
-
-        // Get the public URL for the uploaded image
-        const { data: publicUrlData } = supabase.storage
-          .from('posts')
-          .getPublicUrl(fileName);
-
-        if (publicUrlData?.publicUrl) {
-          uploadedUrls.push(publicUrlData.publicUrl);
+  
+        // Upload the image to the 'posts' bucket
+        const { error } = await supabase.storage
+          .from('posts') // Use the correct bucket name
+          .upload(fileName, decode(base64), { contentType: 'image/png' });
+  
+        if (error) {
+          throw new Error(`Failed to upload image: ${error.message}`);
         }
+  
+        // Add the file name to the list of uploaded files
+        uploadedFileNames.push(fileName);
       }
-
-      return uploadedUrls;
+  
+      return uploadedFileNames;
     } catch (error: any) {
-      Alert.alert('Error uploading images', error.message);
+      Alert.alert('Error', error.message);
       return [];
     }
   };
