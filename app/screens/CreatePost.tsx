@@ -1,3 +1,4 @@
+import uuid from 'react-native-uuid';
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, Alert, Image, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -32,44 +33,77 @@ export default function CreatePost() {
   };
 
   // Function to upload multiple images to Supabase
-  const uploadImages = async () => {
+  // Function to upload multiple images to Supabase
+const uploadImages = async () => {
     if (images.length === 0) {
       Alert.alert('Error', 'Please select at least one image.');
       return [];
     }
   
-    const uploadedFileNames: string[] = [];
+    const uploadedUrls: string[] = [];
+    const failedUploads: string[] = [];
   
     try {
       for (const imageUri of images) {
-        // Convert the image to base64
-        const base64 = await FileSystem.readAsStringAsync(imageUri, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
+        try {
+          // Convert the image to base64
+          const base64 = await FileSystem.readAsStringAsync(imageUri, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
   
-        // Generate a unique file name
-        const fileName = `post_images/${Date.now()}-${Math.random().toString(36).substring(2)}.png`;
+          // Check file size (base64 is ~33% larger than the binary)
+          const approximateFileSizeInMB = (base64.length * 0.75) / (1024 * 1024);
+          if (approximateFileSizeInMB > 5) { // 5MB limit as an example
+            failedUploads.push(`File too large (${Math.round(approximateFileSizeInMB)}MB)`);
+            continue;
+          }
   
-        // Upload the image to the 'posts' bucket
-        const { error } = await supabase.storage
-          .from('posts') // Use the correct bucket name
-          .upload(fileName, decode(base64), { contentType: 'image/png' });
+          // Generate a unique file name
+          const fileName = `private/${Date.now()}-${Math.random().toString(36).substring(2)}.png`;
   
-        if (error) {
-          throw new Error(`Failed to upload image: ${error.message}`);
+          // Upload the image to the 'posts' bucket
+          const { data, error } = await supabase.storage
+            .from('posts')
+            .upload(fileName, decode(base64), { contentType: 'image/png' });
+  
+          if (error){
+            // Check if the error is a timeout but the image was uploaded successfully
+            if (error.message.includes('timed out') && data) {
+              console.warn('Timeout occurred, but the image was uploaded successfully.');
+            } else {
+              failedUploads.push(imageUri);
+              console.error('Upload error:', error);
+              continue; // Continue with the next image
+            }
+          } 
+  
+          // Get the public URL for the uploaded file
+          const { data: { publicUrl } } = supabase.storage
+            .from('posts')
+            .getPublicUrl(fileName);
+  
+          // Add the public URL to the list
+          uploadedUrls.push(publicUrl);
+        } catch (individualError) {
+          failedUploads.push(imageUri);
+          console.error('Individual image error:', individualError);
         }
-  
-        // Add the file name to the list of uploaded files
-        uploadedFileNames.push(fileName);
       }
   
-      return uploadedFileNames;
+      // If some uploads failed, show a warning
+      if (failedUploads.length > 0) {
+        Alert.alert(
+          'Warning',
+          `${failedUploads.length} of ${images.length} images failed to upload.`
+        );
+      }
+  
+      return uploadedUrls;
     } catch (error: any) {
       Alert.alert('Error', error.message);
-      return [];
+      return uploadedUrls; // Return any successfully uploaded URLs
     }
-  };
-
+  }; 
   // Function to handle post creation
   const handleCreatePost = async () => {
     if (!title || !description) {
@@ -96,6 +130,7 @@ export default function CreatePost() {
       const { data: postData, error: postError } = await supabase
         .from('post')
         .insert([{ 
+          id: uuid.v4(),
           title, 
           description, 
           user_id: user.id,
@@ -111,19 +146,25 @@ export default function CreatePost() {
       }
 
       const postId = postData[0].id;
-
+      console.log("postId:::", postId);
+      console.log("post Data:::", postData);
       // 3. Associate images with the post
       if (imageUrls.length > 0) {
-        const imageRecords = imageUrls.map(url => ({
-          post_id: postId,
-          image_url: url
-        }));
-
-        const { error: imagesError } = await supabase
-          .from('post_images')
-          .insert(imageRecords);
-
-        if (imagesError) throw imagesError;
+        for (const url of imageUrls) {
+          const { data: postImageId, error: imagesError } = await supabase
+            .from('post_images')
+            .insert({
+              id: uuid.v4(), 
+              image_url: url,
+              post_id: postId,
+            }).select();
+            if (postImageId && postImageId[0]) {
+              console.log("id created:", postImageId[0]);
+            } else {
+              console.log("postImageId is null or empty.");
+            }
+          if (imagesError) throw imagesError;
+        }
       }
 
       Alert.alert('Success', 'Post created successfully!');
