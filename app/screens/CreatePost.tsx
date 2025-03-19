@@ -44,6 +44,7 @@ const uploadImages = async () => {
     const failedUploads: string[] = [];
 
  
+    
     try {
         
       for (const imageUri of images) {
@@ -126,6 +127,7 @@ const uploadImages = async () => {
       const imageUrls = await uploadImages();
       if (imageUrls.length === 0 && images.length > 0) {
         setLoading(false);
+        //setIsUploading(false); // Reset uploading state
         return; // Error already shown in uploadImages
       }
 
@@ -163,11 +165,7 @@ const uploadImages = async () => {
               image_url: url,
               post_id: postId,
             }).select();
-            if (postImageId && postImageId[0]) {
-              console.log("id created:", postImageId[0]);
-            } else {
-              console.log("postImageId is null or empty.");
-            }
+            
           if (imagesError) throw imagesError;
         }
       }
@@ -227,7 +225,7 @@ const uploadImages = async () => {
       <Button 
         title={loading ? "Creating Post..." : "Create Post"} 
         onPress={handleCreatePost} 
-        disabled={loading || !title || !description}
+        disabled={loading  || !title || !description}
       />
     </ScrollView>
   );
