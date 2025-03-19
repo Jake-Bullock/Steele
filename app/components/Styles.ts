@@ -89,6 +89,22 @@ export const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 10,
   },
+  navCenterButton: {
+    position: 'absolute',
+    alignSelf: 'center',
+    backgroundColor: '#007AFF', // Example color
+    borderRadius: 25,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    top: 10, // Adjust based on navbar height
+  },
+  navCenterButtonText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
 });
 
 export default styles;

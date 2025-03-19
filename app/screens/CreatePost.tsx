@@ -42,8 +42,10 @@ const uploadImages = async () => {
   
     const uploadedUrls: string[] = [];
     const failedUploads: string[] = [];
-  
+
+ 
     try {
+        
       for (const imageUri of images) {
         try {
           // Convert the image to base64
@@ -106,6 +108,7 @@ const uploadImages = async () => {
   }; 
   // Function to handle post creation
   const handleCreatePost = async () => {
+    const postId = uuid.v4(); // Generate a unique post ID for the images
     if (!title || !description) {
       Alert.alert('Error', 'Please fill in both title and description.');
       return;
@@ -127,10 +130,11 @@ const uploadImages = async () => {
       }
 
       // 2. Create the post
+      
       const { data: postData, error: postError } = await supabase
         .from('post')
         .insert([{ 
-          id: uuid.v4(),
+          id: postId, 
           title, 
           description, 
           user_id: user.id,
@@ -145,16 +149,17 @@ const uploadImages = async () => {
         throw new Error('Failed to create post');
       }
 
-      const postId = postData[0].id;
+      
       console.log("postId:::", postId);
       console.log("post Data:::", postData);
       // 3. Associate images with the post
       if (imageUrls.length > 0) {
         for (const url of imageUrls) {
+          const imagesId = uuid.v4();
           const { data: postImageId, error: imagesError } = await supabase
             .from('post_images')
             .insert({
-              id: uuid.v4(), 
+              id: imagesId, 
               image_url: url,
               post_id: postId,
             }).select();

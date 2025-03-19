@@ -27,10 +27,23 @@ export default function Navbar() {
     router.push('/screens/ProfilePage');
   }
 
+  // Navigate to create page
+  const navigateToCreatePage = () => {
+    router.push('/screens/CreatePost');
+  }
+
   return (
     <View style={GlobalStyles.navbar}>
       <TouchableOpacity onPress={() => router.push('/')}>
         <Text style={GlobalStyles.navbarLogo}>Stele</Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity 
+        style={GlobalStyles.navCenterButton} 
+        onPress={navigateToCreatePage}
+        activeOpacity={0.7} // Improves touch feedback
+      >
+        <Text style={GlobalStyles.navCenterButtonText}>+</Text>
       </TouchableOpacity>
       
       <View style={GlobalStyles.navLinks}>
@@ -38,7 +51,7 @@ export default function Navbar() {
           <TouchableOpacity 
             style={GlobalStyles.navButton}
             onPress={navigateToProfile}
-            activeOpacity={0.7} // This improves touch feedback
+            activeOpacity={0.7}
           >
             <Text style={GlobalStyles.navButtonText}>Profile</Text>
           </TouchableOpacity>

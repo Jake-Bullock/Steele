@@ -347,6 +347,7 @@ const GlobalStyles = StyleSheet.create({
     backgroundColor: "#ffffff",
     borderBottomWidth: 1,
     borderColor: "#eaeaea",
+    position: "relative", // Ensure relative positioning for absolute children
   },
   navbarLogo: {
     fontSize: 24,
@@ -377,6 +378,23 @@ const GlobalStyles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: '#000',
+  },
+  navCenterButton: {
+    position: 'absolute',
+    left: '50%', // Start at the horizontal center
+    transform: [{ translateX: -25 }], // Offset by half the button's width to center it
+    backgroundColor: '#000000', // Example color
+    borderRadius: 25,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    top: 10, // Adjust based on navbar height
+  }, 
+  navCenterButtonText: {
+    color: '#fff',
+    fontSize: 16, 
+    fontWeight: 'bold',
   },
 });
 
