@@ -8,45 +8,92 @@ import { createClient } from '@supabase/supabase-js';
 const supabase = createClient(process.env.EXPO_PUBLIC_SUPABASE_URL!, process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!);
 
 export default function PostDetail() {
-  const { id } = useLocalSearchParams(); // Get dynamic ID from route
+  const { post_id } = useLocalSearchParams(); // Get dynamic ID from route
   const [post, setPost] = useState<any>(null);
   const [images, setImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-
+  console.log("Post Id: ", useLocalSearchParams());
+  console.log("Real post id", post_id);
   useEffect(() => {
-    if (id) {
+    if (post_id) {
       fetchPost();
     }
-  }, [id]);
+  }, [post_id]);
 
   const fetchPost = async () => {
-    const { data: postData, error: postError } = await supabase
-      .from('post') // Replace with your actual table name
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (postError) {
-      console.error('Error fetching post:', postError);
-    } else {
-      setPost(postData);
-      fetchImages(postData.id);
+    console.log("DEBUG - Fetching post with ID:", post_id);
+    
+  
+    try {
+      const { data: postData, error: postError } = await supabase
+        .from('post')
+        .select('*')
+        .eq('id', String(post_id)) // ✅ Force it to be a string
+        .maybeSingle(); // ✅ Prevents errors if 0 rows are returned
+  
+      console.log("DEBUG - Post Data:", postData);
+      console.log("DEBUG - Post Fetch Error:", postError);
+  
+      if (postError) {
+        console.error("ERROR - Fetching post failed:", postError);
+      } else if (!postData) {
+        console.warn("⚠️ No post found for ID:", post_id);
+      } else {
+        setPost(postData);
+        fetchImages(postData.id);
+      }
+    } catch (error) {
+      console.error("ERROR - fetchPost() crashed:", error);
     }
   };
+  
 
   const fetchImages = async (postId: string) => {
-    const { data: imageData, error: imageError } = await supabase
-      .from('post_images')
-      .select('image_url')
-      .eq('post_id', postId);
-
-    if (imageError) {
-      console.error('Error fetching images:', imageError);
-    } else {
-      setImages(imageData.map((img: { image_url: string }) => img.image_url));
+    try {
+      const { data: imageData, error: imageError } = await supabase
+        .from('post_images')
+        .select('image_url')
+        .eq('post_id', postId);
+  
+      if (imageError) {
+        console.error("❌ Error fetching images:", imageError);
+        return;
+      }
+  
+      const updatedImages = await Promise.all(
+        imageData.map(async (img: { image_url: string }) => {
+          // Extract the relative file path from the public URL
+          const filePath = img.image_url.split("/object/public/posts/")[1];
+  
+          if (!filePath) {
+            console.warn("⚠️ Could not extract file path from:", img.image_url);
+            return null;
+          }
+  
+          const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+            .from('posts')
+            .createSignedUrl(filePath, 60 * 60 * 24); // 24 hours
+  
+          if (signedUrlError) {
+            console.error("❌ Error creating signed URL:", signedUrlError);
+            return null;
+          }
+  
+          return signedUrlData.signedUrl;
+        })
+      );
+  
+      // Remove nulls and update state
+      setImages(updatedImages.filter((url): url is string => url !== null));
+    } catch (error) {
+      console.error("❌ fetchImages() crashed:", error);
     }
     setLoading(false);
   };
+  
+  
+
+  console.log("DEBUG - Final image URLs to render:", images);
 
   if (loading) {
     return <ActivityIndicator size="large" color="#0000ff" />;

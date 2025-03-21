@@ -1,6 +1,6 @@
 import uuid from 'react-native-uuid';
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, Alert, Image, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, Button, Alert, Image, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import supabase from '../_utils/lib/supabase';
 import { useAuth } from '../_utils/hooks/useAuth'; // Assume you have an auth context
@@ -16,16 +16,41 @@ export default function CreatePost() {
 
   // Function to pick multiple images
   const pickImages = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsMultipleSelection: true,
-    });
-
-    if (!result.canceled) {
-      const newImageUris = result.assets.map(asset => asset.uri);
-      setImages(prevImages => [...prevImages, ...newImageUris]);
+    if (Platform.OS === 'web') {
+      return new Promise((resolve) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.multiple = true;
+        
+        input.onchange = (event: Event) => {
+          const target = event.target as HTMLInputElement | null;
+          
+          if (target && target.files) {  // ✅ Type guard to prevent null error
+            const files = Array.from(target.files).map((file) =>
+              URL.createObjectURL(file)
+            );
+            setImages((prevImages) => [...prevImages, ...files]);
+            resolve(files);
+          }
+        };
+  
+        input.click();
+      });
+    } else {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+      });
+  
+      if (!result.canceled) {
+        const newImageUris = result.assets.map((asset) => asset.uri);
+        setImages((prevImages) => [...prevImages, ...newImageUris]);
+      }
     }
   };
+  
+  
 
   // Function to remove an image from the selection
   const removeImage = (index: number) => {
@@ -43,16 +68,36 @@ const uploadImages = async () => {
     const uploadedUrls: string[] = [];
     const failedUploads: string[] = [];
 
- 
+    const convertToBase64 = async (uri: string): Promise<string> => {
+      if (Platform.OS === 'web') {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(blob);
+          reader.onloadend = () => {
+            if (typeof reader.result === 'string') {
+              resolve(reader.result.split(',')[1]); // ✅ Safe because result is a string
+            } else {
+              console.error("FileReader result is not a string:", reader.result);
+              resolve(""); // Return an empty string if something goes wrong
+            }
+          };
+        });
+      } else {
+        return await FileSystem.readAsStringAsync(uri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+      }
+    };
+    
     
     try {
         
       for (const imageUri of images) {
         try {
           // Convert the image to base64
-          const base64 = await FileSystem.readAsStringAsync(imageUri, {
-            encoding: FileSystem.EncodingType.Base64,
-          });
+          const base64 = await convertToBase64(imageUri);
   
           // Check file size (base64 is ~33% larger than the binary)
           const approximateFileSizeInMB = (base64.length * 0.75) / (1024 * 1024);
