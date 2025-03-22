@@ -44,6 +44,7 @@ const Posts = (): JSX.Element => {
           renderItem={({ item }) => (
             <PostThumbnail
               title={item.title}
+              qr_code_url={item.qr_code_url}
               onPress={() => router.push(`/screens/PostDetail/${item.id}`)}
             />
           )}
