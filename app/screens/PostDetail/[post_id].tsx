@@ -2,10 +2,8 @@ import React from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet, Image, ScrollView } from 'react-native';
-import { createClient } from '@supabase/supabase-js';
+import supabase from '../../_utils/lib/supabase'
 
-// Initialize Supabase client
-const supabase = createClient(process.env.EXPO_PUBLIC_SUPABASE_URL!, process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!);
 
 export default function PostDetail() {
   const { post_id } = useLocalSearchParams(); // Get dynamic ID from route

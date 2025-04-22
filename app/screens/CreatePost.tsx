@@ -185,7 +185,7 @@ const uploadImages = async () => {
           title, 
           description, 
           user_id: user.id,
-          qr_code_url: `localhost:8081/screens/PostDetail/${postId}`
+          qr_code_url: `/screens/PostDetail/${postId}`
           // Optional: Add QR code URL if you have it
           // qr_code_url: qrCodeUrl
         }])
