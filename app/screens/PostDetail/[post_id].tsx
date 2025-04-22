@@ -19,7 +19,7 @@ export default function PostDetail() {
 
   const fetchPost = async () => {
     
-  
+
     try {
       const { data: postData, error: postError } = await supabase
         .from('post')
@@ -31,6 +31,7 @@ export default function PostDetail() {
         console.error("ERROR - Fetching post failed:", postError);
       } else if (!postData) {
         console.warn("⚠️ No post found for ID:", post_id);
+        console.log("DEBUG - postData:", postData);
       } else {
         setPost(postData);
         fetchImages(postData.id);
