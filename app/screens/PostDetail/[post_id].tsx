@@ -2,8 +2,8 @@ import React from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet, Image, ScrollView } from 'react-native';
-import supabase from '../../_utils/lib/supabase'
-
+import { createClient } from '@supabase/supabase-js';
+import supabase from '../../_utils/lib/supabase';
 
 export default function PostDetail() {
   const { post_id } = useLocalSearchParams(); // Get dynamic ID from route
@@ -20,13 +20,14 @@ export default function PostDetail() {
 
   const fetchPost = async () => {
     console.log("DEBUG - Fetching post with ID:", post_id);
+    console.log("DEBUG - TYPEOF post_id:", typeof post_id);
     
   
     try {
       const { data: postData, error: postError } = await supabase
         .from('post')
         .select('*')
-        .eq('id', String(post_id)) // ✅ Force it to be a string
+        .eq('id', post_id) // ✅ Force it to be a string
         .maybeSingle(); // ✅ Prevents errors if 0 rows are returned
   
       console.log("DEBUG - Post Data:", postData);
@@ -36,6 +37,7 @@ export default function PostDetail() {
         console.error("ERROR - Fetching post failed:", postError);
       } else if (!postData) {
         console.warn("⚠️ No post found for ID:", post_id);
+        console.log("DEBUG - postData:", postData);
       } else {
         setPost(postData);
         fetchImages(postData.id);
