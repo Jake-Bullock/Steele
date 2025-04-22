@@ -46,6 +46,7 @@ export default function SignInScreen(): JSX.Element {
           autoCapitalize="none"
           value={email}
           placeholder="Enter email"
+          placeholderTextColor={'#667'}
           onChangeText={setEmail}
           editable={!loading}
           keyboardType="email-address"
@@ -54,6 +55,7 @@ export default function SignInScreen(): JSX.Element {
           style={GlobalStyles.input}
           value={password}
           placeholder="Enter password"
+          placeholderTextColor={'#667'}
           secureTextEntry={true}
           onChangeText={setPassword}
           editable={!loading}

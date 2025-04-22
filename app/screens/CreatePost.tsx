@@ -240,6 +240,7 @@ const uploadImages = async () => {
       <TextInput
         style={styles.inputMultiline}
         placeholder="Enter Description"
+        placeholderTextColor={'#667'}
         value={description}
         onChangeText={setDescription}
         multiline
