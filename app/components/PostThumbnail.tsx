@@ -16,7 +16,7 @@ const PostThumbnail = ({ title, qr_code_url, onPress }: PostThumbnailProps): JSX
       </TouchableOpacity>
       {qr_code_url ? (
         //<QRCode value={`${process.env.EXPO_PUBLIC_NGROK_SERVER}/screens/${qr_code_url}`} />
-        <QRCode value={`https://steele-ovwr.vercel.app/${qr_code_url}`} />
+        <QRCode value={`steele-ovwr.vercel.app/${qr_code_url}`} />
       ) : (
         <Text style={styles.title}>QR Code not available</Text>
       )}
