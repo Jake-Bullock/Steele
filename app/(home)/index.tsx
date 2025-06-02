@@ -12,7 +12,7 @@ export default function HomePage(): JSX.Element {
   return (
     <View style={GlobalStyles.container}>
       <View style={GlobalStyles.contentContainer}>
-        <Text style={GlobalStyles.title}>Welcome to Stele</Text>
+        <Text style={GlobalStyles.title}>Welcome to STEEEELLLEEEE FOE</Text>
         <Text style={GlobalStyles.subtitle}>Store your memories</Text>
         
         {session ? (
