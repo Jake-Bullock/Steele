@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "nibbleMate",
-    "slug": "nibbleMate",
+    "slug": "stele",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -38,6 +38,15 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "2c13702d-ed1f-44d9-8544-6de5f8177632"
+      }
+    },
+    "owner": "zmineiko"
   }
 }
