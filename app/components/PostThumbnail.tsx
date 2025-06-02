@@ -15,7 +15,8 @@ const PostThumbnail = ({ title, qr_code_url, onPress }: PostThumbnailProps): JSX
         <Text style={styles.title}>{title}</Text>
       </TouchableOpacity>
       {qr_code_url ? (
-        <QRCode value={`${process.env.EXPO_PUBLIC_NGROK_SERVER}/screens/${qr_code_url}`} />
+        //<QRCode value={`${process.env.EXPO_PUBLIC_NGROK_SERVER}/screens/${qr_code_url}`} />
+        <QRCode value={`localhost:8081/screens/${qr_code_url}`} />
       ) : (
         <Text style={styles.title}>QR Code not available</Text>
       )}
