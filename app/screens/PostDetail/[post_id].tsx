@@ -141,36 +141,26 @@ export default function PostDetail() {
     }
   };
 
-  // Gesture handler for swiping between images
-  const gestureHandler = useAnimatedGestureHandler({
-    onStart: (_, context: any) => {
-      context.startX = translateX.value;
-    },
-    onActive: (event, context) => {
-      translateX.value = context.startX + event.translationX;
-    },
-    onEnd: (event) => {
-      const velocity = event.velocityX;
-      const translation = event.translationX;
+  // Handle pan gesture - zak hand code shi
+  const handlePanGesture = (event) => {
+    const { translationX, velocityX, state } = event.nativeEvent;
+    
+    // Only trigger on gesture end
+    if (state === State.END) {
+      const SWIPE_THRESHOLD = 50; // Minimum distance for swipe
+      const VELOCITY_THRESHOLD = 500; // Minimum velocity for swipe
       
-      // Determine if we should go to next/previous image
-      if (Math.abs(translation) > screenWidth / 3 || Math.abs(velocity) > 500) {
-        if (translation > 0 && selectedImageIndex !== null && selectedImageIndex > 0) {
-          // Swipe right - go to previous image
-          runOnJS(goToPreviousImage)();
-        } else if (translation < 0 && selectedImageIndex !== null && selectedImageIndex < images.length - 1) {
-          // Swipe left - go to next image
-          runOnJS(goToNextImage)();
-        } else {
-          // Snap back to current image
-          translateX.value = withSpring(-selectedImageIndex! * screenWidth);
-        }
-      } else {
-        // Snap back to current image
-        translateX.value = withSpring(-selectedImageIndex! * screenWidth);
+      // Check if it's a swipe right
+      if (translationX > SWIPE_THRESHOLD || velocityX > VELOCITY_THRESHOLD) {
+        goToPreviousImage();
       }
-    },
-  });
+      // Check if it's a swipe left
+      else if (translationX < -SWIPE_THRESHOLD || velocityX < -VELOCITY_THRESHOLD) {
+        goToNextImage();
+      }
+    }
+  };
+
 
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -231,7 +221,8 @@ export default function PostDetail() {
           </View>
 
           {/* Swipeable image container */}
-          <PanGestureHandler onGestureEvent={gestureHandler}>
+          {/*<PanGestureHandler onGestureEvent={gestureHandler}>*/}
+          <PanGestureHandler onHandlerStateChange={handlePanGesture}>
             <View style={{ width: screenWidth, height: screenHeight, overflow: 'hidden', alignSelf: 'center' }}>
               <Animated.View
                 style={[
@@ -252,6 +243,7 @@ export default function PostDetail() {
               </Animated.View>
             </View>
           </PanGestureHandler>
+          
 
           {/* Navigation buttons for web/easier navigation */}
           {Platform.OS === 'web' && (
