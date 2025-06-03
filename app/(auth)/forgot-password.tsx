@@ -13,7 +13,7 @@ export default function ForgotPasswordScreen() {
     setLoading(true);
     setMessage('');
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://steele-ovwr.vercel.app/update-password',
+      redirectTo: 'https://steele-ovwr.vercel.app/(auth)/update-password',
     });
     setLoading(false);
 
