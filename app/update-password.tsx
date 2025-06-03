@@ -41,7 +41,9 @@ export default function UpdatePasswordScreen() {
 
     if (error) {
       Alert.alert('Error', error.message);
+      console.log(error.message);
     } else {
+      await supabase.auth.signOut();
       showSuccessToast('Password successfully updated!');
       router.replace('/');
     }
