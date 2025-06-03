@@ -5,6 +5,9 @@ import {
   TextInput,
   Alert,
   ScrollView,
+  Platform,
+   Modal, 
+   Pressable
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import GlobalStyles from '../../assets/styles/GlobalStyles'
@@ -19,6 +22,7 @@ export default function ProfilePage(): JSX.Element {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [editedUsername, setEditedUsername] = useState('')
   const [isEditing, setIsEditing] = useState(false)
+  const [showWebSignOutModal, setShowWebSignOutModal] = useState(false);
 
   useEffect(() => {
     getProfile()
@@ -85,17 +89,17 @@ export default function ProfilePage(): JSX.Element {
     }
   }
 
-  async function signOut() {
+  async function confirmSignOut() {
     try {
-      setLoading(true)
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
-      router.replace('/(auth)/sign-in')
+      setLoading(true);
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      if (error) throw error;
+      router.replace('/');
     } catch (error) {
-      console.error('Error signing out:', error)
-      Alert.alert('Error', 'Error signing out')
+      console.error('Error signing out:', error);
+      Alert.alert('Error', 'Error signing out');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -108,6 +112,7 @@ export default function ProfilePage(): JSX.Element {
   }
 
   return (
+    <>
     <ScrollView style={GlobalStyles.container}>
       <View style={[GlobalStyles.contentContainer, { justifyContent: 'flex-start', paddingTop: 15, paddingBottom: 30 }]}>
         <Text style={[GlobalStyles.title, { fontSize: 22, marginBottom: 5 }]}>Profile</Text>
@@ -173,11 +178,66 @@ export default function ProfilePage(): JSX.Element {
           <Button 
             title="Sign Out"
             variant="danger"
-            onPress={signOut}
+            onPress={() => {
+              if (Platform.OS === 'web') {
+                setShowWebSignOutModal(true); // show custom modal
+              } else {
+                Alert.alert(
+                  'Are you sure you want to sign out?',
+                  undefined,
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Yes', onPress: confirmSignOut },
+                  ]
+                );
+              }
+            }}
             style={{ marginTop: 20 }}
           />
         </View>
       </View>
     </ScrollView>
+    <Modal
+    visible={showWebSignOutModal}
+    transparent
+    animationType="fade"
+    onRequestClose={() => setShowWebSignOutModal(false)}
+  >
+    <View style={{
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.4)',
+      justifyContent: 'center',
+      alignItems: 'center'
+    }}>
+      <View style={{
+        backgroundColor: 'white',
+        padding: 20,
+        borderRadius: 10,
+        width: '80%',
+        maxWidth: 400
+      }}>
+        <Text style={{ marginBottom: 20 }}>Are you sure you want to sign out?</Text>
+
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+          <Pressable
+            onPress={() => setShowWebSignOutModal(false)}
+            style={{ marginRight: 15 }}
+          >
+            <Text style={{ color: 'blue' }}>Cancel</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              setShowWebSignOutModal(false);
+              confirmSignOut();
+            }}
+          >
+            <Text style={{ color: 'red' }}>Sign Out</Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  </Modal>
+</>
   )
+  
 }

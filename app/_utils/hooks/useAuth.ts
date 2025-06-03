@@ -31,7 +31,6 @@ export function useAuth() {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       setUser(null); // Clear the user on sign out
-      router.replace('/(auth)/sign-in');
     } catch (error: any) {
       throw error;
     }
