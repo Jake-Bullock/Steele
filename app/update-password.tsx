@@ -19,6 +19,7 @@ export default function UpdatePasswordScreen() {
 
     if (error) {
       Alert.alert('Error', error.message);
+      console.log(error.message);
     } else {
       showSuccessToast("Password successfully updated!")
       router.replace('/(auth)/sign-in');
