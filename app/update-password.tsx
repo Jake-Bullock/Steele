@@ -11,6 +11,7 @@ export default function UpdatePasswordScreen() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useLocalSearchParams();
+  const [passwordError, setPasswordError] = useState('');
   console.log('Search Params:', searchParams);
 
   useEffect(() => {
@@ -34,7 +35,25 @@ export default function UpdatePasswordScreen() {
     }
   }, []);
 
+
+  const validatePassword = () => {
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasNumber = /\d/.test(password);
+    const isLongEnough = password.length >= 8;
+
+    if (!isLongEnough || !hasUpperCase || !hasNumber) {
+      setPasswordError(
+        'Password must be at least 8 characters, include a capital letter and a number'
+      );
+      return false;
+    }
+
+    setPasswordError('');
+    return true;
+  };
+
   const updatePassword = async () => {
+    if (!validatePassword()) return;
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
@@ -57,9 +76,15 @@ export default function UpdatePasswordScreen() {
           placeholder="New password"
           secureTextEntry
           value={password}
-          onChangeText={setPassword}
+          onChangeText={(text) => {
+            setPassword(text);
+            if (passwordError) setPasswordError('');
+          }}
           style={GlobalStyles.input}
         />
+        {passwordError ? (
+          <Text style={{ color: 'red', marginTop: 4 }}>{passwordError}</Text>
+        ) : null}
         <Button
           title="Update Password"
           onPress={updatePassword}
