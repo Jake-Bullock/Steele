@@ -11,21 +11,28 @@ export default function UpdatePasswordScreen() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useLocalSearchParams();
+  console.log('Search Params:', searchParams);
 
   useEffect(() => {
-    const { access_token, refresh_token, type } = searchParams;
-
-    if (type === 'recovery' && access_token && refresh_token) {
-      supabase.auth
-        .setSession({
-          access_token: String(access_token),
-          refresh_token: String(refresh_token),
-        })
-        .catch((err) => {
-          console.log('Error setting session:', err.message);
+    const hash = window?.location?.hash;
+    if (hash) {
+      const params = new URLSearchParams(hash.substring(1)); // remove #
+      const access_token = params.get('access_token');
+      const refresh_token = params.get('refresh_token');
+      const type = params.get('type');
+  
+      console.log('Extracted from hash:', { access_token, refresh_token, type });
+  
+      if (type === 'recovery' && access_token && refresh_token) {
+        supabase.auth.setSession({
+          access_token,
+          refresh_token,
+        }).catch(err => {
+          console.error('Failed to set session:', err.message);
         });
+      }
     }
-  }, [searchParams]);
+  }, []);
 
   const updatePassword = async () => {
     setLoading(true);
