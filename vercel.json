@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/screens/PostDetail/:id", "destination": "/" },
+    { "source": "/(.*)", "destination": "/" }
+  ]
+}
