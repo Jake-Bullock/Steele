@@ -1,4 +1,6 @@
 import React from 'react';
+import QRCode from 'react-native-qrcode-svg';
+
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { 
@@ -142,7 +144,7 @@ export default function PostDetail() {
   };
 
   // Handle pan gesture - zak hand code shi
-  const handlePanGesture = (event) => {
+  const handlePanGesture = (event: any) => {
     const { translationX, velocityX, state } = event.nativeEvent;
     
     // Only trigger on gesture end
@@ -198,6 +200,14 @@ export default function PostDetail() {
             ))}
           </View>
         )}
+        {/* QR Code below images */}
+        <View style={{ alignItems: 'center', marginTop: 24 }}>
+          <QRCode
+            value={`https://steele-ovwr.vercel.app/screens/PostDetail/${post_id}`}
+            size={180}
+          />
+          <Text style={{ color: '#888', marginTop: 8 }}>Scan to view post</Text>
+        </View>
       </ScrollView>
 
       {/* Full Screen Image Viewer Modal */}
@@ -267,7 +277,9 @@ export default function PostDetail() {
             </>
           )}
         </View>
+        
       </Modal>
+      
     </>
   );
 }
@@ -282,6 +294,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 10,
+    textAlign: 'center',
   },
   description: {
     fontSize: 16,
