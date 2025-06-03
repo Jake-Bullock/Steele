@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Alert } from 'react-native';
-import Button from '../components/Button';
-import supabase from '../_utils/lib/supabase';
-import GlobalStyles from '../../assets/styles/GlobalStyles';
+import Button from './components/Button';
+import supabase from './_utils/lib/supabase';
+import GlobalStyles from '../assets/styles/GlobalStyles';
 import { useRouter } from 'expo-router';
-import { showSuccessToast } from '../../utils/showToast';
+import { showSuccessToast } from '../utils/showToast';
 
 
 export default function UpdatePasswordScreen() {
