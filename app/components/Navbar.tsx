@@ -1,16 +1,16 @@
-import React from "react"
-import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native"
-import { useRouter, usePathname } from "expo-router"
-import { useSupabase } from '../_utils/contexts/SupabaseProvider'
-import GlobalStyles from '../../assets/styles/GlobalStyles'
+import React from "react";
+import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
+import { useRouter, usePathname } from "expo-router";
+import { useSupabase } from "../_utils/contexts/SupabaseProvider";
+import GlobalStyles from "../../assets/styles/GlobalStyles";
 
 export default function Navbar() {
-  const router = useRouter()
-  const { session, initialized } = useSupabase()
-  const pathname = usePathname()
-  
+  const router = useRouter();
+  const { session, initialized } = useSupabase();
+  const pathname = usePathname();
+
   // Check if we're on the profile page
-  const isProfilePage = pathname === '/screens/ProfilePage'
+  const isProfilePage = pathname === "/screens/ProfilePage";
 
   // Don't show navigation elements until auth is initialized
   if (!initialized) {
@@ -21,34 +21,34 @@ export default function Navbar() {
       </View>
     );
   }
-  
+
   // Navigate to profile page
   const navigateToProfile = () => {
-    router.push('/screens/ProfilePage');
-  }
+    router.push("/screens/ProfilePage");
+  };
 
   // Navigate to create page
   const navigateToCreatePage = () => {
-    router.push('/screens/CreatePost');
-  }
+    router.push("/screens/CreatePost");
+  };
 
   return (
     <View style={GlobalStyles.navbar}>
-      <TouchableOpacity onPress={() => router.push('/')}>
+      <TouchableOpacity onPress={() => router.push("/")}>
         <Text style={GlobalStyles.navbarLogo}>Stele</Text>
       </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={GlobalStyles.navCenterButton} 
-        onPress={navigateToCreatePage}
-        activeOpacity={0.7} // Improves touch feedback
-      >
-        <Text style={GlobalStyles.navCenterButtonText}>+</Text>
-      </TouchableOpacity>
-      
+      {session && (
+        <TouchableOpacity
+          style={GlobalStyles.navCenterButton}
+          onPress={navigateToCreatePage}
+          activeOpacity={0.7} // Improves touch feedback
+        >
+          <Text style={GlobalStyles.navCenterButtonText}>+</Text>
+        </TouchableOpacity>
+      )}
       <View style={GlobalStyles.navLinks}>
         {session && !isProfilePage && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={GlobalStyles.navButton}
             onPress={navigateToProfile}
             activeOpacity={0.7}
@@ -58,5 +58,5 @@ export default function Navbar() {
         )}
       </View>
     </View>
-  )
+  );
 }
