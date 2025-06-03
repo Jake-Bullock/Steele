@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/screens/PostDetail/:id", "destination": "/" },
+    { "source": "/update-password", "destination": "/(auth)/update-password" },
     { "source": "/(.*)", "destination": "/" }
   ]
 }
