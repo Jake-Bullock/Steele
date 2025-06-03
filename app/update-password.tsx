@@ -43,7 +43,7 @@ export default function UpdatePasswordScreen() {
       Alert.alert('Error', error.message);
     } else {
       showSuccessToast('Password successfully updated!');
-      router.replace('/(auth)/sign-in');
+      router.replace('/');
     }
   };
 
