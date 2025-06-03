@@ -8,7 +8,7 @@ export default function ProtectedLayout() {
   if (!initialized) return null
 
   if (!session) {
-    return <Redirect href="/(auth)/sign-in" />
+    return <Redirect href="/" />
   }
   return (
     <Stack 
