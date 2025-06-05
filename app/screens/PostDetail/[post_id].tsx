@@ -13,7 +13,8 @@ import {
   TouchableOpacity, 
   Modal, 
   Dimensions,
-  Platform
+  Platform,
+  TextInput,
 } from 'react-native';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import Animated, {
@@ -26,6 +27,9 @@ import Animated, {
 import supabase from '../../_utils/lib/supabase';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
+
+
 
 // Helper function to determine if URL is a video
 const isVideoFile = (url: string) => {
@@ -80,10 +84,12 @@ const MediaItem = ({ url, style, onPress, isFullScreen = false }) => {
 export default function PostDetail() {
   const { post_id } = useLocalSearchParams();
   const [post, setPost] = useState<any>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [mediaFiles, setMediaFiles] = useState<{url: string, type: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMediaIndex, setSelectedMediaIndex] = useState<number | null>(null);
   const [isMediaViewerVisible, setIsMediaViewerVisible] = useState(false);
+  const [deletedMedia, setDeletedMedia] = useState<string[]>([]);
 
   // Animation values
   const translateX = useSharedValue(0);
@@ -160,12 +166,13 @@ export default function PostDetail() {
 
           return {
             url: signedUrlData.signedUrl,
-            type: fileType
+            type: fileType,
+            image_url: item.image_url, 
           };
         })
       );
 
-      setMediaFiles(updatedMediaFiles.filter((item): item is {url: string, type: string} => item !== null));
+      setMediaFiles(updatedMediaFiles.filter((item): item is {url: string, type: string, image_url: string} => item !== null));
     } catch (error) {
       console.error("❌ fetchMediaFiles() crashed:", error);
     }
@@ -216,6 +223,11 @@ export default function PostDetail() {
     }
   };
 
+  const handleDeleteMedia = (index: number) => {
+    setDeletedMedia(prev => [...prev, mediaFiles[index].image_url]);
+    setMediaFiles(prev => prev.filter((_, i) => i !== index));
+};
+
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
@@ -235,9 +247,56 @@ export default function PostDetail() {
 
   return (
     <>
+      <View style={{ position: 'absolute', top: 40, right: 20, zIndex: 2000 }}>
+        <TouchableOpacity
+            onPress={async () => {
+              if (isEditing) {
+                // User is finishing editing, update post fields
+                await supabase
+                  .from('post')
+                  .update({
+                    title: post.title,
+                    description: post.description,
+                  })
+                  .eq('id', post_id);
+                // Delete all removed media from DB
+                for (const imageUrl of deletedMedia) {
+                  await supabase
+                    .from('post_images')
+                    .delete()
+                    .eq('image_url', imageUrl)
+                    .eq('post_id', post_id);
+                }
+                setDeletedMedia([]); // Reset after saving
+              }
+              setIsEditing(!isEditing);
+            }}
+          >
+          <Text style={{ fontSize: 18, color: '#007AFF', fontWeight: 'bold' }}>
+            {isEditing ? 'Done' : 'Edit'}
+          </Text>
+        </TouchableOpacity>
+      </View>
       <ScrollView style={styles.container}>
-        <Text style={styles.title}>{post.title}</Text>
-        <Text style={styles.description}>{post.description}</Text>
+        {isEditing ? (
+          <TextInput
+            style={styles.titleEdit}
+            value={post.title}
+            onChangeText={text => setPost({ ...post, title: text })}
+          />
+        ) : (
+          <Text style={styles.title}>{post.title}</Text>
+        )}
+        {isEditing ? (
+          <TextInput
+            style={styles.titleEdit}
+            value={post.description}
+            onChangeText={text => setPost({ ...post, description: text })}
+            multiline
+          />
+        ) : (
+          <Text style={styles.description}>{post.description}</Text>
+        )}
         {mediaFiles.length > 0 && (
           <View style={styles.mediaContainer}>
             {mediaFiles.map((mediaFile, index) => (
@@ -247,6 +306,22 @@ export default function PostDetail() {
                   style={styles.media}
                   onPress={() => openMediaViewer(index)}
                 />
+                {isEditing && (
+                  <TouchableOpacity
+                    style={{
+                      position: 'absolute',
+                      top: 5,
+                      right: 5,
+                      backgroundColor: 'rgba(255,0,0,0.7)',
+                      borderRadius: 12,
+                      padding: 4,
+                      zIndex: 10,
+                    }}
+                    onPress={() => handleDeleteMedia(index)}
+                  >
+                    <Text style={{ color: 'white', fontWeight: 'bold' }}>✕</Text>
+                  </TouchableOpacity>
+                )}
                 {/* Media type indicator */}
                 <View style={styles.mediaTypeIndicator}>
                   <Text style={styles.mediaTypeText}>
@@ -358,6 +433,17 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
     textAlign: 'center',
+  },
+  titleEdit: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 8,
+    backgroundColor: '#f9f9f9',  
   },
   description: {
     fontSize: 16,
