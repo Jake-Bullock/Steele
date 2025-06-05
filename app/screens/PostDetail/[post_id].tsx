@@ -91,6 +91,10 @@ export default function PostDetail() {
   const [isMediaViewerVisible, setIsMediaViewerVisible] = useState(false);
   const [deletedMedia, setDeletedMedia] = useState<string[]>([]);
 
+  const [originalPost, setOriginalPost] = useState<any>(null);
+  const [originalMediaFiles, setOriginalMediaFiles] = useState<any[]>([]);
+
+
   // Animation values
   const translateX = useSharedValue(0);
   const scale = useSharedValue(1);
@@ -260,34 +264,53 @@ export default function PostDetail() {
       {isPostOwner && (
         <View style={{ position: 'absolute', top: 40, right: 20, zIndex: 2000 }}>
           <TouchableOpacity
-              onPress={async () => {
-                if (isEditing) {
-                  // User is finishing editing, update post fields
+            onPress={async () => {
+              if (!isEditing) {
+                setOriginalPost(post);
+                setOriginalMediaFiles(mediaFiles);
+                setIsEditing(true);
+              } else {
+                // Done logic (already present)
+                await supabase
+                  .from('post')
+                  .update({
+                    title: post.title,
+                    description: post.description,
+                  })
+                  .eq('id', post_id);
+                for (const imageUrl of deletedMedia) {
                   await supabase
-                    .from('post')
-                    .update({
-                      title: post.title,
-                      description: post.description,
-                    })
-                    .eq('id', post_id);
-                  // Delete all removed media from DB
-                  for (const imageUrl of deletedMedia) {
-                    await supabase
-                      .from('post_images')
-                      .delete()
-                      .eq('image_url', imageUrl)
-                      .eq('post_id', post_id);
-                  }
-                  setDeletedMedia([]); // Reset after saving
+                    .from('post_images')
+                    .delete()
+                    .eq('image_url', imageUrl)
+                    .eq('post_id', post_id);
                 }
-                setIsEditing(!isEditing);
-              }}
-              
-            >
+                setDeletedMedia([]);
+                setIsEditing(false);
+              }
+            }}
+          >
             <Text style={{ fontSize: 18, color: '#007AFF', fontWeight: 'bold' }}>
               {isEditing ? 'Done' : 'Edit'}
             </Text>
           </TouchableOpacity>
+
+          
+          {isEditing && ( // Add a Cancel button that only shows in edit mode:
+            <TouchableOpacity
+              style={{ position: 'absolute', top: 40, right: 20, zIndex: 2000 }}
+              onPress={() => {
+                setPost(originalPost);
+                setMediaFiles(originalMediaFiles);
+                setDeletedMedia([]);
+                setIsEditing(false);
+              }}
+            >
+              <Text style={{ fontSize: 18, color: '#FF3B30', fontWeight: 'bold' }}>
+                Cancel
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
       <ScrollView style={styles.container}>
