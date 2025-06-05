@@ -104,7 +104,7 @@ export default function PostDetail() {
     };
     fetchUser();
   }, []);
-
+  const isPostOwner = user && post && user.id === post.user_id;
   useEffect(() => {
     if (post_id) {
       fetchPost();
@@ -257,7 +257,7 @@ export default function PostDetail() {
 
   return (
     <>
-      {user && (
+      {isPostOwner && (
         <View style={{ position: 'absolute', top: 40, right: 20, zIndex: 2000 }}>
           <TouchableOpacity
               onPress={async () => {
