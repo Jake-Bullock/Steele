@@ -1,5 +1,6 @@
 import uuid from "react-native-uuid";
 import React, { useState } from "react";
+import { Video, ResizeMode } from "expo-av";
 import {
   View,
   Text,
@@ -23,7 +24,7 @@ import { useSupabase } from '../_utils/contexts/SupabaseProvider'
 export default function CreatePost() {
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<{ uri: string; type: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth(); // Get current authenticated user
   const { session } = useSupabase()
@@ -34,7 +35,7 @@ export default function CreatePost() {
       return new Promise((resolve) => {
         const input = document.createElement("input");
         input.type = "file";
-        input.accept = "image/*";
+        input.accept = "image/*,video/*"; 
         input.multiple = true;
 
         input.onchange = (event: Event) => {
@@ -42,9 +43,10 @@ export default function CreatePost() {
 
           if (target && target.files) {
             // ✅ Type guard to prevent null error
-            const files = Array.from(target.files).map((file) =>
-              URL.createObjectURL(file)
-            );
+            const files = Array.from(target.files).map((file) => ({
+              uri: URL.createObjectURL(file),
+              type: file.type || "image",
+            }));
             setImages((prevImages) => [...prevImages, ...files]);
             resolve(files);
           }
@@ -54,13 +56,17 @@ export default function CreatePost() {
       });
     } else {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
         allowsMultipleSelection: true,
       });
 
       if (!result.canceled) {
-        const newImageUris = result.assets.map((asset) => asset.uri);
-        setImages((prevImages) => [...prevImages, ...newImageUris]);
+        // Ensure type is always a string
+        const newFiles = result.assets.map((asset) => ({
+          uri: asset.uri,
+          type: asset.type ?? "image"
+        }));
+        setImages((prevImages) => [...prevImages, ...newFiles]);
       }
     }
   };
@@ -111,7 +117,7 @@ export default function CreatePost() {
       for (const imageUri of images) {
         try {
           // Convert the image to base64
-          const base64 = await convertToBase64(imageUri);
+          const base64 = await convertToBase64(imageUri.uri);
 
           // Check file size (base64 is ~33% larger than the binary)
           const approximateFileSizeInMB =
@@ -141,7 +147,7 @@ export default function CreatePost() {
                 "Timeout occurred, but the image was uploaded successfully."
               );
             } else {
-              failedUploads.push(imageUri);
+              failedUploads.push(imageUri.uri);
               console.error("Upload error:", error);
               continue; // Continue with the next image
             }
@@ -155,7 +161,7 @@ export default function CreatePost() {
           // Add the public URL to the list
           uploadedUrls.push(publicUrl);
         } catch (individualError) {
-          failedUploads.push(imageUri);
+          failedUploads.push(imageUri.uri);
           console.error("Individual image error:", individualError);
         }
       }
@@ -285,9 +291,18 @@ export default function CreatePost() {
               Selected Images: {images.length}
             </Text>
             <ScrollView horizontal style={styles.imageScroll}>
-              {images.map((img, index) => (
+              {images.map((file, index) => (
                 <View key={index} style={styles.imageWrapper}>
-                  <Image source={{ uri: img }} style={styles.image} />
+                  {file.type === "video" ? (
+                    <Video
+                      source={{ uri: file.uri }}
+                      style={styles.image}
+                      useNativeControls
+                      resizeMode={ResizeMode.COVER}
+                    />
+                  ) : (
+                    <Image source={{ uri: file.uri }} style={styles.image} />
+                  )}
                   <TouchableOpacity
                     style={styles.removeButton}
                     onPress={() => removeImage(index)}
