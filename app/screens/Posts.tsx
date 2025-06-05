@@ -37,6 +37,7 @@ const Posts = (): JSX.Element => {
         <Button
           title="Create New Post"
           onPress={() => router.push('/screens/CreatePost')}
+          style={GlobalStyles.buttonContainer}
         />
         <FlatList
           data={posts}

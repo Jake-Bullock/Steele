@@ -17,13 +17,13 @@ const GlobalStyles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: 10,
     textAlign: "center",
   },
   subtitle: {
     fontSize: 18,
     color: "#666666",
-    marginBottom: 30,
+    marginBottom: 0,
     textAlign: "center",
   },
   
@@ -39,7 +39,7 @@ const GlobalStyles = StyleSheet.create({
   
   // Button styles
   buttonContainer: {
-    width: "100%",
+    width: "50%",
     marginVertical: 10,
   },
   button: {

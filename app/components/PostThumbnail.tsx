@@ -29,6 +29,7 @@ const PostThumbnail = ({ title, onPress, postId, userId }: PostThumbnailProps): 
       .from('post_images')
       .select('image_url')
       .eq('post_id', postId)
+      .eq('file_type', 'image')
       .limit(1)
       .single();
 

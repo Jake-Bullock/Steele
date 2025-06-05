@@ -1,5 +1,6 @@
 import uuid from "react-native-uuid";
 import React, { useState } from "react";
+import { useVideoPlayer, VideoView } from "expo-video";
 import {
   View,
   Text,
@@ -14,7 +15,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import supabase from "../_utils/lib/supabase";
-import { useAuth } from "../_utils/hooks/useAuth"; // Assume you have an auth context
+import { useAuth } from "../_utils/hooks/useAuth";
 import { decode } from "base64-arraybuffer";
 import * as FileSystem from "expo-file-system";
 import { router } from "expo-router";
@@ -23,28 +24,67 @@ import { useSupabase } from '../_utils/contexts/SupabaseProvider'
 export default function CreatePost() {
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<{ uri: string; type: string; name?: string }[]>([]);
   const [loading, setLoading] = useState(false);
-  const { user } = useAuth(); // Get current authenticated user
+  const { user } = useAuth();
   const { session } = useSupabase()
 
-  // Function to pick multiple images
+  // Helper function to get file extension and content type
+  const getFileInfo = (type: string, uri: string) => {
+    let extension = '.png';
+    let contentType = 'image/png';
+    
+    if (type.startsWith('video/')) {
+      if (type.includes('mp4')) {
+        extension = '.mp4';
+        contentType = 'video/mp4';
+      } else if (type.includes('quicktime') || type.includes('mov')) {
+        extension = '.mov';
+        contentType = 'video/quicktime';
+      } else if (type.includes('webm')) {
+        extension = '.webm';
+        contentType = 'video/webm';
+      } else {
+        extension = '.mp4'; // Default for videos
+        contentType = 'video/mp4';
+      }
+    } else if (type.startsWith('image/')) {
+      if (type.includes('jpeg') || type.includes('jpg')) {
+        extension = '.jpg';
+        contentType = 'image/jpeg';
+      } else if (type.includes('png')) {
+        extension = '.png';
+        contentType = 'image/png';
+      } else if (type.includes('gif')) {
+        extension = '.gif';
+        contentType = 'image/gif';
+      } else if (type.includes('webp')) {
+        extension = '.webp';
+        contentType = 'image/webp';
+      }
+    }
+    
+    return { extension, contentType };
+  };
+
+  // Function to pick multiple images/videos
   const pickImages = async () => {
     if (Platform.OS === "web") {
       return new Promise((resolve) => {
         const input = document.createElement("input");
         input.type = "file";
-        input.accept = "image/*";
+        input.accept = "image/*,video/*"; 
         input.multiple = true;
 
         input.onchange = (event: Event) => {
           const target = event.target as HTMLInputElement | null;
 
           if (target && target.files) {
-            // ✅ Type guard to prevent null error
-            const files = Array.from(target.files).map((file) =>
-              URL.createObjectURL(file)
-            );
+            const files = Array.from(target.files).map((file) => ({
+              uri: URL.createObjectURL(file),
+              type: file.type || "image/png",
+              name: file.name,
+            }));
             setImages((prevImages) => [...prevImages, ...files]);
             resolve(files);
           }
@@ -54,13 +94,17 @@ export default function CreatePost() {
       });
     } else {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
         allowsMultipleSelection: true,
       });
 
       if (!result.canceled) {
-        const newImageUris = result.assets.map((asset) => asset.uri);
-        setImages((prevImages) => [...prevImages, ...newImageUris]);
+        const newFiles = result.assets.map((asset) => ({
+          uri: asset.uri,
+          type: asset.type ?? "image",
+          name: asset.fileName ?? undefined,
+        }));
+        setImages((prevImages) => [...prevImages, ...newFiles]);
       }
     }
   };
@@ -70,11 +114,10 @@ export default function CreatePost() {
     setImages((prevImages) => prevImages.filter((_, i) => i !== index));
   };
 
-  // Function to upload multiple images to Supabase
-  // Function to upload multiple images to Supabase
+  // Function to upload multiple images/videos to Supabase
   const uploadImages = async () => {
     if (images.length === 0) {
-      Alert.alert("Error", "Please select at least one image.");
+      Alert.alert("Error", "Please select at least one image or video.");
       return [];
     }
 
@@ -90,13 +133,10 @@ export default function CreatePost() {
           reader.readAsDataURL(blob);
           reader.onloadend = () => {
             if (typeof reader.result === "string") {
-              resolve(reader.result.split(",")[1]); // ✅ Safe because result is a string
+              resolve(reader.result.split(",")[1]);
             } else {
-              console.error(
-                "FileReader result is not a string:",
-                reader.result
-              );
-              resolve(""); // Return an empty string if something goes wrong
+              console.error("FileReader result is not a string:", reader.result);
+              resolve("");
             }
           };
         });
@@ -108,42 +148,49 @@ export default function CreatePost() {
     };
 
     try {
-      for (const imageUri of images) {
+      for (const file of images) {
         try {
-          // Convert the image to base64
-          const base64 = await convertToBase64(imageUri);
+          // Get proper file info based on type
+          const { extension, contentType } = getFileInfo(file.type, file.uri);
+          
+          // Convert the file to base64
+          const base64 = await convertToBase64(file.uri);
 
           // Check file size (base64 is ~33% larger than the binary)
-          const approximateFileSizeInMB =
-            (base64.length * 0.75) / (1024 * 1024);
-          if (approximateFileSizeInMB > 5) {
-            // 5MB limit as an example
+          const approximateFileSizeInMB = (base64.length * 0.75) / (1024 * 1024);
+          
+          // Different size limits for different file types
+          const sizeLimit = file.type.startsWith('video/') ? 50 : 5; // 50MB for videos, 5MB for images
+          
+          if (approximateFileSizeInMB > sizeLimit) {
             failedUploads.push(
-              `File too large (${Math.round(approximateFileSizeInMB)}MB)`
+              `File too large (${Math.round(approximateFileSizeInMB)}MB). Limit: ${sizeLimit}MB`
             );
             continue;
           }
 
-          // Generate a unique file name
+          // Generate a unique file name with proper extension
           const fileName = `private/${Date.now()}-${Math.random()
             .toString(36)
-            .substring(2)}.png`;
+            .substring(2)}${extension}`;
 
-          // Upload the image to the 'posts' bucket
+          console.log(`Uploading ${file.type} file: ${fileName}`);
+
+          // Upload the file to the 'posts' bucket with correct content type
           const { data, error } = await supabase.storage
             .from("posts")
-            .upload(fileName, decode(base64), { contentType: "image/png" });
+            .upload(fileName, decode(base64), { 
+              contentType: contentType,
+              cacheControl: '3600'
+            });
 
           if (error) {
-            // Check if the error is a timeout but the image was uploaded successfully
             if (error.message.includes("timed out") && data) {
-              console.warn(
-                "Timeout occurred, but the image was uploaded successfully."
-              );
+              console.warn("Timeout occurred, but the file was uploaded successfully.");
             } else {
-              failedUploads.push(imageUri);
+              failedUploads.push(`${file.name || file.uri}: ${error.message}`);
               console.error("Upload error:", error);
-              continue; // Continue with the next image
+              continue;
             }
           }
 
@@ -152,11 +199,11 @@ export default function CreatePost() {
             data: { publicUrl },
           } = supabase.storage.from("posts").getPublicUrl(fileName);
 
-          // Add the public URL to the list
           uploadedUrls.push(publicUrl);
+          console.log(`Successfully uploaded: ${publicUrl}`);
         } catch (individualError) {
-          failedUploads.push(imageUri);
-          console.error("Individual image error:", individualError);
+          failedUploads.push(`${file.name || file.uri}: ${individualError}`);
+          console.error("Individual file error:", individualError);
         }
       }
 
@@ -164,19 +211,20 @@ export default function CreatePost() {
       if (failedUploads.length > 0) {
         Alert.alert(
           "Warning",
-          `${failedUploads.length} of ${images.length} images failed to upload.`
+          `${failedUploads.length} of ${images.length} files failed to upload.\n\n${failedUploads.join('\n')}`
         );
       }
 
       return uploadedUrls;
     } catch (error: any) {
       Alert.alert("Error", error.message);
-      return uploadedUrls; // Return any successfully uploaded URLs
+      return uploadedUrls;
     }
   };
+
   // Function to handle post creation
   const handleCreatePost = async () => {
-    const postId = uuid.v4(); // Generate a unique post ID for the images
+    const postId = uuid.v4();
     if (!title || !description) {
       Alert.alert("Error", "Please fill in both title and description.");
       return;
@@ -190,16 +238,14 @@ export default function CreatePost() {
     setLoading(true);
 
     try {
-      // 1. Upload all images
-      const imageUrls = await uploadImages();
-      if (imageUrls.length === 0 && images.length > 0) {
+      // 1. Upload all images/videos
+      const fileUrls = await uploadImages();
+      if (fileUrls.length === 0 && images.length > 0) {
         setLoading(false);
-        //setIsUploading(false); // Reset uploading state
-        return; // Error already shown in uploadImages
+        return;
       }
 
       // 2. Create the post
-
       const { data: postData, error: postError } = await supabase
         .from("post")
         .insert([
@@ -209,8 +255,6 @@ export default function CreatePost() {
             description,
             user_id: user.id,
             qr_code_url: `PostDetail/${postId}`,
-            // Optional: Add QR code URL if you have it
-            // qr_code_url: qrCodeUrl
           },
         ])
         .select();
@@ -223,16 +267,21 @@ export default function CreatePost() {
 
       console.log("postId:::", postId);
       console.log("post Data:::", postData);
-      // 3. Associate images with the post
-      if (imageUrls.length > 0) {
-        for (const url of imageUrls) {
+
+      // 3. Associate files with the post
+      if (fileUrls.length > 0) {
+        for (let i = 0; i < fileUrls.length; i++) {
+          const url = fileUrls[i];
+          const file = images[i];
           const imagesId = uuid.v4();
+          
           const { data: postImageId, error: imagesError } = await supabase
             .from("post_images")
             .insert({
               id: imagesId,
               image_url: url,
               post_id: postId,
+              file_type: file.type.startsWith('video/') ? 'video' : 'image', // Add file type if your schema supports it
             })
             .select();
 
@@ -246,12 +295,13 @@ export default function CreatePost() {
       setTitle("");
       setDescription("");
       setImages([]);
+      
+      router.push(`/screens/PostDetail/${postId}`);
     } catch (error: any) {
       Alert.alert("Error creating post", error.message);
     } finally {
       setLoading(false);
     }
-    router.push(`/screens/PostDetail/${postId}`); // Navigate to the PostDetail screen after creating the post
   };
 
   if (!session) {
@@ -277,24 +327,21 @@ export default function CreatePost() {
           numberOfLines={4}
         />
 
-        <Button title="Select Images" onPress={pickImages} />
+        <Button title="Select Images/Videos" onPress={pickImages} />
 
         {images.length > 0 && (
           <View style={styles.imagesContainer}>
             <Text style={styles.subtitle}>
-              Selected Images: {images.length}
+              Selected Files: {images.length}
             </Text>
             <ScrollView horizontal style={styles.imageScroll}>
-              {images.map((img, index) => (
-                <View key={index} style={styles.imageWrapper}>
-                  <Image source={{ uri: img }} style={styles.image} />
-                  <TouchableOpacity
-                    style={styles.removeButton}
-                    onPress={() => removeImage(index)}
-                  >
-                    <Text style={styles.removeButtonText}>✕</Text>
-                  </TouchableOpacity>
-                </View>
+              {images.map((file, index) => (
+                <VideoPreviewItem 
+                  key={index} 
+                  file={file} 
+                  index={index} 
+                  onRemove={removeImage}
+                />
               ))}
             </ScrollView>
           </View>
@@ -309,6 +356,45 @@ export default function CreatePost() {
     );
   }
 }
+
+// Component for rendering video/image preview items
+const VideoPreviewItem = ({ file, index, onRemove }) => {
+  const player = useVideoPlayer(file.type.startsWith("video") ? file.uri : null, player => {
+    if (player) {
+      player.loop = false;
+      // Don't auto-play in preview
+    }
+  });
+
+  return (
+    <View style={styles.imageWrapper}>
+      {file.type.startsWith("video") ? (
+        <VideoView
+          style={styles.image}
+          player={player}
+          allowsFullscreen={false}
+          allowsPictureInPicture={false}
+          nativeControls={true}
+          contentFit="cover"
+        />
+      ) : (
+        <Image source={{ uri: file.uri }} style={styles.image} />
+      )}
+      <TouchableOpacity
+        style={styles.removeButton}
+        onPress={() => onRemove(index)}
+      >
+        <Text style={styles.removeButtonText}>✕</Text>
+      </TouchableOpacity>
+      {/* File type indicator */}
+      <View style={styles.fileTypeIndicator}>
+        <Text style={styles.fileTypeText}>
+          {file.type.startsWith("video") ? "VIDEO" : "IMAGE"}
+        </Text>
+      </View>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -373,6 +459,20 @@ const styles = StyleSheet.create({
   removeButtonText: {
     color: "white",
     fontSize: 16,
+    fontWeight: "bold",
+  },
+  fileTypeIndicator: {
+    position: "absolute",
+    bottom: 5,
+    left: 5,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  fileTypeText: {
+    color: "white",
+    fontSize: 10,
     fontWeight: "bold",
   },
 });
