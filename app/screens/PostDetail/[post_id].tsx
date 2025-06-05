@@ -1,7 +1,7 @@
 import React from 'react';
 import QRCode from 'react-native-qrcode-svg';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { 
   View, 
@@ -89,9 +89,10 @@ const MediaItem = ({ url, style, onPress, isFullScreen = false }: MediaItemProps
 };
 
 export default function PostDetail() {
-  const { post_id } = useLocalSearchParams();
+  const { post_id, edit  } = useLocalSearchParams();
+  const router =  useRouter();
   const [post, setPost] = useState<any>(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(edit === 'true');
   const [mediaFiles, setMediaFiles] = useState<{url: string, type: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMediaIndex, setSelectedMediaIndex] = useState<number | null>(null);
@@ -115,13 +116,18 @@ export default function PostDetail() {
     };
     fetchUser();
   }, []);
+
+
   const isPostOwner = user && post && user.id === post.user_id;
+
   useEffect(() => {
     if (post_id) {
       fetchPost();
     }
   }, [post_id]);
 
+ 
+  
   useEffect(() => {
     if (isMediaViewerVisible && selectedMediaIndex !== null) {
       translateX.value = -selectedMediaIndex * screenWidth;
@@ -307,10 +313,10 @@ export default function PostDetail() {
             <TouchableOpacity
               style={{ position: 'absolute', top: 40, right: 20, zIndex: 2000 }}
               onPress={() => {
-                setPost(originalPost);
-                setMediaFiles(originalMediaFiles);
-                setDeletedMedia([]);
-                setIsEditing(false);
+                router.replace({
+                  pathname: `/screens/PostDetail/${post_id}`,
+                  params: { edit: 'false' },
+                });
               }}
             >
               <Text style={{ fontSize: 18, color: '#FF3B30', fontWeight: 'bold' }}>
