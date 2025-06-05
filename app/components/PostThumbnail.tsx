@@ -21,6 +21,7 @@ const PostThumbnail = ({ title, onPress, postId, userId }: PostThumbnailProps): 
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false)
   const [showWebDeletePostModal, setShowWebDeletePostModal] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
 
 
   useEffect(() => {
@@ -105,33 +106,43 @@ const PostThumbnail = ({ title, onPress, postId, userId }: PostThumbnailProps): 
   return (
     <>
       <TouchableOpacity style={styles.container} onPress={onPress}>
-        <Text style={styles.title}>{title}</Text>
-      
-      {imageUrl ? (
-        <Image source={{ uri: imageUrl }} style={styles.image} />
-      ) : (
-        <Text style={styles.title}>Image not available</Text>
-      )}
-      </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={styles.deleteButton}
-            onPress={() => {
-              if (Platform.OS === 'web') {
-                setShowWebDeletePostModal(true); // show custom modal
-              } else {
-                Alert.alert(
-                  'Are you sure you want to delete this post?',
-                  undefined,
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Yes', onPress: deletePost.bind(null, postId, userId) },
-                  ]
-                );
-              }
-            }}>
-            <Text style={styles.deleteButtonText}>Delete Post</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between",}}>
+          <Text style={styles.title}>{title}</Text>
+          <TouchableOpacity onPress={() => setShowDropdown((prev) => !prev)}>
+            <Image source={require('../../assets/images/ellipsis-h-solid.png')} style={{ width: 32, height: 32 }} />
           </TouchableOpacity>
+        </View>
+        {showDropdown && (
+              <View style={styles.dropdownMenu}>
+                {/* Place your dropdown content here */}
+                <TouchableOpacity onPress={() => { router.push({ pathname: '/screens/PostDetail/[post_id]', params: { post_id: postId, edit: 'true' } }); }}>
+                  <Image source={require('../../assets/images/edit-regular.png')} style={styles.dropdownItem} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => { 
+                  if (Platform.OS === 'web') {
+                    setShowWebDeletePostModal(true); // show custom modal
+                  } else {
+                    Alert.alert(
+                    'Are you sure you want to delete this post?',
+                    undefined,
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Yes', onPress: deletePost.bind(null, postId, userId) },
+                    ]
+                  );
+                }
+                setShowDropdown(false);
+              }}>
+                  <Image source={require('../../assets/images/trash-alt-solid.png')} style={styles.dropdownItem} />
+                </TouchableOpacity>
+              </View>
+        )}
+        {imageUrl ? (
+          <Image source={{ uri: imageUrl }} style={styles.image} />
+        ) : (
+          <Text style={styles.title}>Image not available</Text>
+        )}
+        </TouchableOpacity>
     <Modal
     visible={showWebDeletePostModal}
     transparent
@@ -204,6 +215,28 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     borderRadius: 10,
     resizeMode: 'cover',
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: 40,
+    right: 0,
+    backgroundColor: 'white',
+    borderRadius: 6,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    zIndex: 100,
+    padding: 10,
+    minWidth: 50,
+  },
+  dropdownItem: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 8,
   },
 });
 
