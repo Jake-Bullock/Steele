@@ -39,7 +39,14 @@ const isVideoFile = (url: string) => {
 };
 
 // Component for rendering media items (images/videos)
-const MediaItem = ({ url, style, onPress, isFullScreen = false }) => {
+type MediaItemProps = {
+  url: string;
+  style?: any;
+  onPress?: () => void;
+  isFullScreen?: boolean;
+};
+
+const MediaItem = ({ url, style, onPress, isFullScreen = false }: MediaItemProps) => {
   const isVideo = isVideoFile(url);
   
   const player = useVideoPlayer(isVideo ? url : null, player => {

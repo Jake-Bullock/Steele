@@ -1,7 +1,12 @@
-import React, { useEffect, useState } from "react";
-import { Text, TouchableOpacity, StyleSheet, View, Image } from "react-native";
+import React, { useState, useEffect } from "react";
+import { Text, TouchableOpacity, StyleSheet, View, Pressable, Modal, Alert, Platform, Image } from "react-native";
+import QRCode from "react-native-qrcode-svg";
 import supabase from '../_utils/lib/supabase';
 import { useRouter } from 'expo-router'
+import Button from '../components/Button'
+import GlobalStyles from '../../assets/styles/GlobalStyles'
+import LoadingIndicator from '../components/LoadingIndicator'
+
 
 interface PostThumbnailProps {
   title: string;
@@ -14,6 +19,9 @@ interface PostThumbnailProps {
 const PostThumbnail = ({ title, onPress, postId, userId }: PostThumbnailProps): JSX.Element => {
   const router = useRouter();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false)
+  const [showWebDeletePostModal, setShowWebDeletePostModal] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
 
 
   useEffect(() => {
@@ -54,6 +62,7 @@ const PostThumbnail = ({ title, onPress, postId, userId }: PostThumbnailProps): 
 
   const deletePost = async (postId: string, userId: string) => {
     try {
+      setLoading(true);
       const { error } = await supabase
         .from('post')
         .delete()
@@ -80,24 +89,100 @@ const PostThumbnail = ({ title, onPress, postId, userId }: PostThumbnailProps): 
       }
     } catch (error) {
       console.error('Unexpected error deleting images:', error);
+    } finally {
+      setLoading(false);
+      router.push('/screens/Posts')
     }
-    router.push('/screens/Posts')
+  }
+
+  if (loading) {
+    return (
+      <View style={[GlobalStyles.container, GlobalStyles.contentContainer]}>
+        <LoadingIndicator />
+      </View>
+    )
   }
   
   return (
     <>
       <TouchableOpacity style={styles.container} onPress={onPress}>
-        <Text style={styles.title}>{title}</Text>
-      
-      {imageUrl ? (
-        <Image source={{ uri: imageUrl }} style={styles.image} />
-      ) : (
-        <Text style={styles.title}>Image not available</Text>
-      )}
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.deleteButton} onPress={() => deletePost(postId, userId)}>
-        <Text style={styles.deleteButtonText}>Delete Post</Text>
-      </TouchableOpacity>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between",}}>
+          <Text style={styles.title}>{title}</Text>
+          <TouchableOpacity onPress={() => setShowDropdown((prev) => !prev)}>
+            <Image source={require('../../assets/images/ellipsis-h-solid.png')} style={{ width: 32, height: 32 }} />
+          </TouchableOpacity>
+        </View>
+        {showDropdown && (
+              <View style={styles.dropdownMenu}>
+                {/* Place your dropdown content here */}
+                <TouchableOpacity onPress={() => { /* Example action */ setShowDropdown(false); }}>
+                  <Image source={require('../../assets/images/edit-regular.png')} style={styles.dropdownItem} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => { 
+                  if (Platform.OS === 'web') {
+                    setShowWebDeletePostModal(true); // show custom modal
+                  } else {
+                    Alert.alert(
+                    'Are you sure you want to delete this post?',
+                    undefined,
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Yes', onPress: deletePost.bind(null, postId, userId) },
+                    ]
+                  );
+                }
+                setShowDropdown(false);
+              }}>
+                  <Image source={require('../../assets/images/trash-alt-solid.png')} style={styles.dropdownItem} />
+                </TouchableOpacity>
+              </View>
+        )}
+        {imageUrl ? (
+          <Image source={{ uri: imageUrl }} style={styles.image} />
+        ) : (
+          <Text style={styles.title}>Image not available</Text>
+        )}
+        </TouchableOpacity>
+    <Modal
+    visible={showWebDeletePostModal}
+    transparent
+    animationType="fade"
+    onRequestClose={() => setShowWebDeletePostModal(false)}
+  >
+    <View style={{
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.4)',
+      justifyContent: 'center',
+      alignItems: 'center'
+    }}>
+      <View style={{
+        backgroundColor: 'white',
+        padding: 20,
+        borderRadius: 10,
+        width: '80%',
+        maxWidth: 400
+      }}>
+        <Text style={{ marginBottom: 20 }}>Are you sure you want to delete this post?</Text>
+
+        <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+          <Pressable
+            onPress={() => setShowWebDeletePostModal(false)}
+            style={{ marginRight: 15 }}
+          >
+            <Text style={{ color: 'blue' }}>Cancel</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              setShowWebDeletePostModal(false);
+              deletePost(postId, userId);
+            }}
+          >
+            <Text style={{ color: 'red' }}>Delete Post</Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  </Modal>
     </>
   );
 };
@@ -130,6 +215,28 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     borderRadius: 10,
     resizeMode: 'cover',
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: 40,
+    right: 0,
+    backgroundColor: 'white',
+    borderRadius: 6,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    zIndex: 100,
+    padding: 10,
+    minWidth: 50,
+  },
+  dropdownItem: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 8,
   },
 });
 
