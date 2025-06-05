@@ -36,6 +36,7 @@
     "expo-status-bar": "~2.0.1",
     "expo-symbols": "~0.2.2",
     "expo-system-ui": "~4.0.7",
+    "expo-video": "^2.2.0",
     "expo-web-browser": "~14.0.2",
     "log": "^6.3.2",
     "react": "18.3.1",
