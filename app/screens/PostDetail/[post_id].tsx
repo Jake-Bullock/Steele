@@ -1,6 +1,6 @@
 import React from 'react';
 import QRCode from 'react-native-qrcode-svg';
-
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { 
@@ -27,30 +27,79 @@ import supabase from '../../_utils/lib/supabase';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
+// Helper function to determine if URL is a video
+const isVideoFile = (url: string) => {
+  const videoExtensions = ['.mp4', '.mov', '.webm', '.avi', '.mkv', '.m4v'];
+  const lowerUrl = url.toLowerCase();
+  return videoExtensions.some(ext => lowerUrl.includes(ext));
+};
+
+// Component for rendering media items (images/videos)
+const MediaItem = ({ url, style, onPress, isFullScreen = false }) => {
+  const isVideo = isVideoFile(url);
+  
+  const player = useVideoPlayer(isVideo ? url : null, player => {
+    if (player) {
+      player.loop = isFullScreen;
+      // Don't auto-play unless in full screen
+      if (!isFullScreen) {
+        player.pause();
+      }
+    }
+  });
+
+  if (isVideo) {
+    return (
+      <TouchableOpacity onPress={onPress} disabled={isFullScreen}>
+        <VideoView
+          style={style}
+          player={player}
+          allowsFullscreen={isFullScreen}
+          allowsPictureInPicture={isFullScreen}
+          nativeControls={isFullScreen}
+          contentFit={isFullScreen ? "contain" : "cover"}
+        />
+        {!isFullScreen && (
+          <View style={styles.videoOverlay}>
+            <View style={styles.playButton}>
+              <Text style={styles.playButtonText}>▶</Text>
+            </View>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  }
+
+  return (
+    <TouchableOpacity onPress={onPress} disabled={isFullScreen}>
+      <Image source={{ uri: url }} style={style} resizeMode={isFullScreen ? "contain" : "cover"} />
+    </TouchableOpacity>
+  );
+};
+
 export default function PostDetail() {
   const { post_id } = useLocalSearchParams();
   const [post, setPost] = useState<any>(null);
-  const [images, setImages] = useState<string[]>([]);
+  const [mediaFiles, setMediaFiles] = useState<{url: string, type: string}[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
-  const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState<number | null>(null);
+  const [isMediaViewerVisible, setIsMediaViewerVisible] = useState(false);
 
   // Animation values
   const translateX = useSharedValue(0);
   const scale = useSharedValue(1);
 
   useEffect(() => {
-    
     if (post_id) {
       fetchPost();
     }
   }, [post_id]);
 
   useEffect(() => {
-  if (isImageViewerVisible && selectedImageIndex !== null) {
-    translateX.value = -selectedImageIndex * screenWidth;
-  }
-  }, [isImageViewerVisible, selectedImageIndex]);
+    if (isMediaViewerVisible && selectedMediaIndex !== null) {
+      translateX.value = -selectedMediaIndex * screenWidth;
+    }
+  }, [isMediaViewerVisible, selectedMediaIndex]);
 
   const fetchPost = async () => {
     try {
@@ -66,31 +115,31 @@ export default function PostDetail() {
         console.warn("⚠️ No post found for ID:", post_id);
       } else {
         setPost(postData);
-        fetchImages(postData.id);
+        fetchMediaFiles(postData.id);
       }
     } catch (error) {
       console.error("ERROR - fetchPost() crashed:", error);
     }
   };
 
-  const fetchImages = async (postId: string) => {
+  const fetchMediaFiles = async (postId: string) => {
     try {
-      const { data: imageData, error: imageError } = await supabase
+      const { data: mediaData, error: mediaError } = await supabase
         .from('post_images')
-        .select('image_url')
+        .select('image_url, file_type')
         .eq('post_id', postId);
 
-      if (imageError) {
-        console.error("❌ Error fetching images:", imageError);
+      if (mediaError) {
+        console.error("❌ Error fetching media files:", mediaError);
         return;
       }
 
-      const updatedImages = await Promise.all(
-        imageData.map(async (img: { image_url: string }) => {
-          const filePath = img.image_url.split("/object/public/posts/")[1];
+      const updatedMediaFiles = await Promise.all(
+        mediaData.map(async (item: { image_url: string, file_type?: string }) => {
+          const filePath = item.image_url.split("/object/public/posts/")[1];
 
           if (!filePath) {
-            console.warn("⚠️ Could not extract file path from:", img.image_url);
+            console.warn("⚠️ Could not extract file path from:", item.image_url);
             return null;
           }
 
@@ -103,67 +152,69 @@ export default function PostDetail() {
             return null;
           }
 
-          return signedUrlData.signedUrl;
+          // Determine file type - use database value if available, otherwise detect from URL
+          let fileType = item.file_type;
+          if (!fileType) {
+            fileType = isVideoFile(signedUrlData.signedUrl) ? 'video' : 'image';
+          }
+
+          return {
+            url: signedUrlData.signedUrl,
+            type: fileType
+          };
         })
       );
 
-      setImages(updatedImages.filter((url): url is string => url !== null));
+      setMediaFiles(updatedMediaFiles.filter((item): item is {url: string, type: string} => item !== null));
     } catch (error) {
-      console.error("❌ fetchImages() crashed:", error);
+      console.error("❌ fetchMediaFiles() crashed:", error);
     }
     setLoading(false);
   };
 
-  const openImageViewer = (index: number) => {
-    setSelectedImageIndex(index);
-    setIsImageViewerVisible(true);
-    //translateX.value = -index * screenWidth;
+  const openMediaViewer = (index: number) => {
+    setSelectedMediaIndex(index);
+    setIsMediaViewerVisible(true);
   };
 
-  const closeImageViewer = () => {
-    setIsImageViewerVisible(false);
-    setSelectedImageIndex(null);
+  const closeMediaViewer = () => {
+    setIsMediaViewerVisible(false);
+    setSelectedMediaIndex(null);
     translateX.value = 0;
     scale.value = 1;
   };
 
-  const goToNextImage = () => {
-    if (selectedImageIndex !== null && selectedImageIndex < images.length - 1) {
-      const newIndex = selectedImageIndex + 1;
-      setSelectedImageIndex(newIndex);
+  const goToNextMedia = () => {
+    if (selectedMediaIndex !== null && selectedMediaIndex < mediaFiles.length - 1) {
+      const newIndex = selectedMediaIndex + 1;
+      setSelectedMediaIndex(newIndex);
       translateX.value = withSpring(-newIndex * screenWidth);
     }
   };
 
-  const goToPreviousImage = () => {
-    if (selectedImageIndex !== null && selectedImageIndex > 0) {
-      const newIndex = selectedImageIndex - 1;
-      setSelectedImageIndex(newIndex);
+  const goToPreviousMedia = () => {
+    if (selectedMediaIndex !== null && selectedMediaIndex > 0) {
+      const newIndex = selectedMediaIndex - 1;
+      setSelectedMediaIndex(newIndex);
       translateX.value = withSpring(-newIndex * screenWidth);
     }
   };
 
-  // Handle pan gesture - zak hand code shi
+  // Handle pan gesture
   const handlePanGesture = (event: any) => {
     const { translationX, velocityX, state } = event.nativeEvent;
     
-    // Only trigger on gesture end
     if (state === State.END) {
-      const SWIPE_THRESHOLD = 50; // Minimum distance for swipe
-      const VELOCITY_THRESHOLD = 500; // Minimum velocity for swipe
+      const SWIPE_THRESHOLD = 50;
+      const VELOCITY_THRESHOLD = 500;
       
-      // Check if it's a swipe right
       if (translationX > SWIPE_THRESHOLD || velocityX > VELOCITY_THRESHOLD) {
-        goToPreviousImage();
-      }
-      // Check if it's a swipe left
-      else if (translationX < -SWIPE_THRESHOLD || velocityX < -VELOCITY_THRESHOLD) {
-        goToNextImage();
+        goToPreviousMedia();
+      } else if (translationX < -SWIPE_THRESHOLD || velocityX < -VELOCITY_THRESHOLD) {
+        goToNextMedia();
       }
     }
   };
-
-
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -187,20 +238,26 @@ export default function PostDetail() {
       <ScrollView style={styles.container}>
         <Text style={styles.title}>{post.title}</Text>
         <Text style={styles.description}>{post.description}</Text>
-        {images.length > 0 && (
-          <View style={styles.imagesContainer}>
-            {images.map((url, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => openImageViewer(index)}
-                style={styles.imageWrapper}
-              >
-                <Image source={{ uri: url }} style={styles.image} />
-              </TouchableOpacity>
+        {mediaFiles.length > 0 && (
+          <View style={styles.mediaContainer}>
+            {mediaFiles.map((mediaFile, index) => (
+              <View key={index} style={styles.mediaWrapper}>
+                <MediaItem
+                  url={mediaFile.url}
+                  style={styles.media}
+                  onPress={() => openMediaViewer(index)}
+                />
+                {/* Media type indicator */}
+                <View style={styles.mediaTypeIndicator}>
+                  <Text style={styles.mediaTypeText}>
+                    {mediaFile.type.toUpperCase()}
+                  </Text>
+                </View>
+              </View>
             ))}
           </View>
         )}
-        {/* QR Code below images */}
+        {/* QR Code below media */}
         <View style={{ alignItems: 'center', marginTop: 24 }}>
           <QRCode
             value={`https://steele-ovwr.vercel.app/screens/PostDetail/${post_id}`}
@@ -210,43 +267,52 @@ export default function PostDetail() {
         </View>
       </ScrollView>
 
-      {/* Full Screen Image Viewer Modal */}
+      {/* Full Screen Media Viewer Modal */}
       <Modal
-        visible={isImageViewerVisible}
+        visible={isMediaViewerVisible}
         transparent={true}
         animationType="fade"
-        onRequestClose={closeImageViewer}
+        onRequestClose={closeMediaViewer}
       >
         <View style={styles.modalContainer}>
           {/* Close button */}
-          <TouchableOpacity style={styles.closeButton} onPress={closeImageViewer}>
+          <TouchableOpacity style={styles.closeButton} onPress={closeMediaViewer}>
             <Text style={styles.closeButtonText}>✕</Text>
           </TouchableOpacity>
 
-          {/* Image counter */}
-          <View style={styles.imageCounter}>
-            <Text style={styles.imageCounterText}>
-              {selectedImageIndex !== null ? selectedImageIndex + 1 : 0} / {images.length}
+          {/* Media counter */}
+          <View style={styles.mediaCounter}>
+            <Text style={styles.mediaCounterText}>
+              {selectedMediaIndex !== null ? selectedMediaIndex + 1 : 0} / {mediaFiles.length}
             </Text>
           </View>
 
-          {/* Swipeable image container */}
-          {/*<PanGestureHandler onGestureEvent={gestureHandler}>*/}
+          {/* Media type indicator in full screen */}
+          {selectedMediaIndex !== null && (
+            <View style={styles.fullScreenMediaType}>
+              <Text style={styles.fullScreenMediaTypeText}>
+                {mediaFiles[selectedMediaIndex]?.type.toUpperCase()}
+              </Text>
+            </View>
+          )}
+
+          {/* Swipeable media container */}
           <PanGestureHandler onHandlerStateChange={handlePanGesture}>
             <View style={{ width: screenWidth, height: screenHeight, overflow: 'hidden', alignSelf: 'center' }}>
               <Animated.View
                 style={[
-                  styles.imageContainer,
-                  { width: images.length * screenWidth },
+                  styles.mediaContainer,
+                  { width: mediaFiles.length * screenWidth },
                   animatedStyle,
                 ]}
               >
-                {images.map((url, index) => (
-                  <View key={index} style={styles.fullScreenImageWrapper}>
-                    <Image
-                      source={{ uri: url }}
-                      style={styles.fullScreenImage}
-                      resizeMode="contain"
+                {mediaFiles.map((mediaFile, index) => (
+                  <View key={index} style={styles.fullScreenMediaWrapper}>
+                    <MediaItem
+                      url={mediaFile.url}
+                      style={styles.fullScreenMedia}
+                      isFullScreen={true}
+                      onPress={() => {}}
                     />
                   </View>
                 ))}
@@ -254,22 +320,21 @@ export default function PostDetail() {
             </View>
           </PanGestureHandler>
           
-
           {/* Navigation buttons for web/easier navigation */}
           {Platform.OS === 'web' && (
             <>
-              {selectedImageIndex !== null && selectedImageIndex > 0 && (
+              {selectedMediaIndex !== null && selectedMediaIndex > 0 && (
                 <TouchableOpacity
                   style={[styles.navButton, styles.prevButton]}
-                  onPress={goToPreviousImage}
+                  onPress={goToPreviousMedia}
                 >
                   <Text style={styles.navButtonText}>‹</Text>
                 </TouchableOpacity>
               )}
-              {selectedImageIndex !== null && selectedImageIndex < images.length - 1 && (
+              {selectedMediaIndex !== null && selectedMediaIndex < mediaFiles.length - 1 && (
                 <TouchableOpacity
                   style={[styles.navButton, styles.nextButton]}
-                  onPress={goToNextImage}
+                  onPress={goToNextMedia}
                 >
                   <Text style={styles.navButtonText}>›</Text>
                 </TouchableOpacity>
@@ -277,9 +342,7 @@ export default function PostDetail() {
             </>
           )}
         </View>
-        
       </Modal>
-      
     </>
   );
 }
@@ -305,19 +368,57 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
   },
-  imagesContainer: {
+  mediaContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
-  imageWrapper: {
+  mediaWrapper: {
     width: '48%',
     marginBottom: 10,
+    position: 'relative',
   },
-  image: {
+  media: {
     width: '100%',
     height: 200,
     borderRadius: 8,
+  },
+  mediaTypeIndicator: {
+    position: 'absolute',
+    bottom: 5,
+    left: 5,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  mediaTypeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  videoOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  playButton: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 30,
+    width: 60,
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  playButtonText: {
+    color: 'white',
+    fontSize: 24,
+    marginLeft: 4, // Slight offset to center the play icon
   },
   // Modal styles
   modalContainer: {
@@ -343,7 +444,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
   },
-  imageCounter: {
+  mediaCounter: {
     position: 'absolute',
     top: 50,
     left: 20,
@@ -353,23 +454,34 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 15,
   },
-  imageCounterText: {
+  mediaCounterText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '500',
   },
-  imageContainer: {
-    flexDirection: 'row',
-    height: screenHeight,
-    alignItems: 'center',
+  fullScreenMediaType: {
+    position: 'absolute',
+    top: 50,
+    left: '50%',
+    transform: [{ translateX: -25 }],
+    zIndex: 1000,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
   },
-  fullScreenImageWrapper: {
+  fullScreenMediaTypeText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  fullScreenMediaWrapper: {
     width: screenWidth,
     height: screenHeight,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  fullScreenImage: {
+  fullScreenMedia: {
     width: screenWidth,
     height: screenHeight * 0.8,
   },
