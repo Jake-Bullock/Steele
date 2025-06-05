@@ -95,6 +95,16 @@ export default function PostDetail() {
   const translateX = useSharedValue(0);
   const scale = useSharedValue(1);
 
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    fetchUser();
+  }, []);
+
   useEffect(() => {
     if (post_id) {
       fetchPost();
@@ -247,36 +257,39 @@ export default function PostDetail() {
 
   return (
     <>
-      <View style={{ position: 'absolute', top: 40, right: 20, zIndex: 2000 }}>
-        <TouchableOpacity
-            onPress={async () => {
-              if (isEditing) {
-                // User is finishing editing, update post fields
-                await supabase
-                  .from('post')
-                  .update({
-                    title: post.title,
-                    description: post.description,
-                  })
-                  .eq('id', post_id);
-                // Delete all removed media from DB
-                for (const imageUrl of deletedMedia) {
+      {user && (
+        <View style={{ position: 'absolute', top: 40, right: 20, zIndex: 2000 }}>
+          <TouchableOpacity
+              onPress={async () => {
+                if (isEditing) {
+                  // User is finishing editing, update post fields
                   await supabase
-                    .from('post_images')
-                    .delete()
-                    .eq('image_url', imageUrl)
-                    .eq('post_id', post_id);
+                    .from('post')
+                    .update({
+                      title: post.title,
+                      description: post.description,
+                    })
+                    .eq('id', post_id);
+                  // Delete all removed media from DB
+                  for (const imageUrl of deletedMedia) {
+                    await supabase
+                      .from('post_images')
+                      .delete()
+                      .eq('image_url', imageUrl)
+                      .eq('post_id', post_id);
+                  }
+                  setDeletedMedia([]); // Reset after saving
                 }
-                setDeletedMedia([]); // Reset after saving
-              }
-              setIsEditing(!isEditing);
-            }}
-          >
-          <Text style={{ fontSize: 18, color: '#007AFF', fontWeight: 'bold' }}>
-            {isEditing ? 'Done' : 'Edit'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+                setIsEditing(!isEditing);
+              }}
+              
+            >
+            <Text style={{ fontSize: 18, color: '#007AFF', fontWeight: 'bold' }}>
+              {isEditing ? 'Done' : 'Edit'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
       <ScrollView style={styles.container}>
         {isEditing ? (
           <TextInput
