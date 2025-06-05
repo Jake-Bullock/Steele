@@ -113,9 +113,8 @@ const PostThumbnail = ({ title, onPress, postId, userId }: PostThumbnailProps): 
       )}
       </TouchableOpacity>
       
-      <Button 
-            title="Delete Post"
-            variant="danger"
+      <TouchableOpacity 
+        style={styles.deleteButton}
             onPress={() => {
               if (Platform.OS === 'web') {
                 setShowWebDeletePostModal(true); // show custom modal
@@ -129,9 +128,9 @@ const PostThumbnail = ({ title, onPress, postId, userId }: PostThumbnailProps): 
                   ]
                 );
               }
-            }}
-            style={{ marginTop: 20 }}
-          />
+            }}>
+            <Text style={styles.deleteButtonText}>Delete Post</Text>
+          </TouchableOpacity>
     <Modal
     visible={showWebDeletePostModal}
     transparent
