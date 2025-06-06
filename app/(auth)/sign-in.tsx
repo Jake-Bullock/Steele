@@ -33,7 +33,7 @@ export default function SignInScreen(): JSX.Element {
         return;
       }
 
-      router.replace('/(home)');
+      router.replace('/');
     } catch (error) {
       setErrorMessage('An unexpected error occurred');
     } finally {
