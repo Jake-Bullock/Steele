@@ -115,7 +115,7 @@ const PostThumbnail = ({ title, onPress, postId, userId }: PostThumbnailProps): 
         {showDropdown && (
               <View style={styles.dropdownMenu}>
                 {/* Place your dropdown content here */}
-                <TouchableOpacity onPress={() => { router.push({ pathname: '/screens/PostDetail/[post_id]', params: { post_id: postId, edit: 'true' } }); }}>
+                <TouchableOpacity onPress={() => { /* Example action */ setShowDropdown(false); }}>
                   <Image source={require('../../assets/images/edit-regular.png')} style={styles.dropdownItem} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => { 
@@ -190,6 +190,7 @@ const PostThumbnail = ({ title, onPress, postId, userId }: PostThumbnailProps): 
 const styles = StyleSheet.create({
   container: {
     padding: 10,
+    margin: 9,
     marginVertical: 5,
     backgroundColor: "#f0f0f0",
     borderRadius: 5,
