@@ -25,14 +25,14 @@ const Posts = (): JSX.Element => {
         setPosts(data || [])
       }
     }
-
+    
     fetchPosts()
   }, [user])
 
   return (
     <View style={GlobalStyles.container}>
       <View style={GlobalStyles.contentContainer}>
-        <View style={{ flex: 1, alignItems: 'center' }}>
+        <View style={{ alignItems: 'center' }}>
           <Text style={[GlobalStyles.title, { fontSize: 22 }]}>Posts</Text>
         </View>
         {/* Invisible placeholder to balance space on right */}
