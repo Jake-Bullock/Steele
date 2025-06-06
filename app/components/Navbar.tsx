@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator, Image} from "react-native";
 import { useRouter, usePathname } from "expo-router";
 import { useSupabase } from "../_utils/contexts/SupabaseProvider";
 import GlobalStyles from "../../assets/styles/GlobalStyles";
@@ -11,6 +11,7 @@ export default function Navbar() {
 
   // Check if we're on the profile page
   const isProfilePage = pathname === "/screens/ProfilePage";
+  const isHomePage = pathname === "/";
 
   // Don't show navigation elements until auth is initialized
   if (!initialized) {
@@ -34,9 +35,20 @@ export default function Navbar() {
 
   return (
     <View style={GlobalStyles.navbar}>
-      <TouchableOpacity onPress={() => router.push("/")}>
-        <Text style={GlobalStyles.navbarLogo}>Stele</Text>
-      </TouchableOpacity>
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        {!isHomePage && (
+          <TouchableOpacity
+            style={GlobalStyles.navButton}
+            onPress={() => router.back()}
+            activeOpacity={0.7} // Improves touch feedback
+          >
+            <Image source={require("../../assets/images/arrow-left-solid.png")} style={{ width: 24, height: 24 }} />
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity onPress={() => router.push("/")}>
+          <Text style={GlobalStyles.navbarLogo}>Stele</Text>
+        </TouchableOpacity>
+      </View>
       {session && (
         <TouchableOpacity
           style={GlobalStyles.navCenterButton}
