@@ -8,7 +8,7 @@ export default function AuthLayout() {
   if (!initialized) return null
 
   if (session) {
-    return <Redirect href="/(home)" />
+    return <Redirect href="/" />
   }
 
   return (
