@@ -91,14 +91,16 @@ export const styles = StyleSheet.create({
   },
   navCenterButton: {
     position: 'absolute',
-    alignSelf: 'center',
-    backgroundColor: '#007AFF', // Example color
-    borderRadius: 25,
+    left: '50%',
+    transform: [{ translateX: -25 }], // half of button width (assumes 50px)
     width: 50,
     height: 50,
+    borderRadius: 25,
+    backgroundColor: '#000',
     justifyContent: 'center',
     alignItems: 'center',
-    top: 10, // Adjust based on navbar height
+    top: -20, // floats above navbar
+    zIndex: 10,
   },
   navCenterButtonText: {
     color: '#fff',

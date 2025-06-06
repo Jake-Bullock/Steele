@@ -7,7 +7,8 @@ import {
   ScrollView,
   Platform,
    Modal, 
-   Pressable
+   Pressable,
+   TouchableOpacity
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import GlobalStyles from '../../assets/styles/GlobalStyles'
@@ -115,7 +116,14 @@ export default function ProfilePage(): JSX.Element {
     <>
     <ScrollView style={GlobalStyles.container}>
       <View style={[GlobalStyles.contentContainer, { justifyContent: 'flex-start', paddingTop: 15, paddingBottom: 30 }]}>
-        <Text style={[GlobalStyles.title, { fontSize: 22, marginBottom: 5 }]}>Profile</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 15 }}>
+        <TouchableOpacity onPress={() => router.back()} style={{ padding: 5 }}>
+          <Text style={{ fontSize: 24 }}>←</Text>
+        </TouchableOpacity>
+        <Text style={[GlobalStyles.title, { fontSize: 22, flex: 1, textAlign: 'center', marginRight: 25 }]}>
+          Profile
+        </Text>
+      </View>
         
         <View style={GlobalStyles.infoContainer}>
           {isEditing ? (

@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 
 const GlobalStyles = StyleSheet.create({
   // Container styles
@@ -381,16 +381,17 @@ const GlobalStyles = StyleSheet.create({
   },
   navCenterButton: {
     position: 'absolute',
-    left: '50%', // Start at the horizontal center
-    transform: [{ translateX: -25 }], // Offset by half the button's width to center it
-    backgroundColor: '#000000', // Example color
+    top: 10,
+    left: '50%',
+    marginLeft: Platform.OS === 'web' ? -25 : -10, 
+    backgroundColor: '#000000',
     borderRadius: 25,
     width: 50,
     height: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    top: 10, // Adjust based on navbar height
-  }, 
+    zIndex: 10,
+  },
   navCenterButtonText: {
     color: '#fff',
     fontSize: 16, 

@@ -17,18 +17,18 @@ export default function HomePage() {
         {session ? (
           <View style={GlobalStyles.buttonContainer}>
             
+            <TouchableOpacity 
+              style={GlobalStyles.button} 
+              onPress={() => router.push('/screens/Posts')}
+            >
+              <Text style={GlobalStyles.buttonText}>Posts</Text>
+            </TouchableOpacity>
             
             <TouchableOpacity 
               style={GlobalStyles.button} 
               onPress={() => router.push('/screens/ProfilePage')}
             >
               <Text style={GlobalStyles.buttonText}>Profile</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={GlobalStyles.button} 
-              onPress={() => router.push('/screens/Posts')}
-            >
-              <Text style={GlobalStyles.buttonText}>Posts</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
