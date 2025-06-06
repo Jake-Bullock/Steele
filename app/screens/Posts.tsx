@@ -32,33 +32,10 @@ const Posts = (): JSX.Element => {
   return (
     <View style={GlobalStyles.container}>
       <View style={GlobalStyles.contentContainer}>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: 20,
-        }}
-      >
-        <TouchableOpacity
-         onPress={() => router.back()}
-          style={{
-            paddingHorizontal: 10,
-            paddingVertical: 5,
-            minWidth: 50, // ensures space is reserved
-            alignItems: 'flex-start',
-          }}
-      >
-          <Text style={{ fontSize: 24 }}>←</Text>
-        </TouchableOpacity>
-
         <View style={{ flex: 1, alignItems: 'center' }}>
           <Text style={[GlobalStyles.title, { fontSize: 22 }]}>Posts</Text>
         </View>
-
         {/* Invisible placeholder to balance space on right */}
-        <View style={{ minWidth: 50 }} />
-      </View>
         <Text style={GlobalStyles.subtitle}>Manage/view your posts</Text>
         <Button
           title="Create New Post"
