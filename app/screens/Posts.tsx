@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Text, View, FlatList, TouchableOpacity } from 'react-native'
+import { Text, View, FlatList, TouchableOpacity, useWindowDimensions } from 'react-native'
 import { useRouter } from 'expo-router'
 import GlobalStyles from '../../assets/styles/GlobalStyles'
 import Button from '../components/Button'
@@ -11,6 +11,17 @@ const Posts = (): JSX.Element => {
   const router = useRouter()
   const { user } = useAuth()
   const [posts, setPosts] = useState<any[]>([])
+  const { width } = useWindowDimensions()
+  let numColumns = 1;
+  if (width < 500) {
+    numColumns = 1;
+  } else if (width < 1200) {
+    numColumns = 2;
+  } else if (width < 1800) {
+    numColumns = 3;
+  } else {
+    numColumns = 4;
+  }
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -45,6 +56,9 @@ const Posts = (): JSX.Element => {
         <FlatList
           data={posts}
           keyExtractor={(item) => item.id.toString()}
+          key={numColumns}
+          numColumns={numColumns}
+          columnWrapperStyle={ numColumns > 1 ? { justifyContent: 'space-between'}: undefined }
           renderItem={({ item }) => (
             <PostThumbnail
               title={item.title}
