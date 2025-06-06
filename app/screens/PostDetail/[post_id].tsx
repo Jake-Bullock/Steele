@@ -69,6 +69,7 @@ const MediaItem = ({ url, style, onPress, isFullScreen = false }: MediaItemProps
           allowsPictureInPicture={isFullScreen}
           nativeControls={isFullScreen}
           contentFit={isFullScreen ? "contain" : "cover"}
+          crossOrigin="anonymous"
         />
         {!isFullScreen && (
           <View style={styles.videoOverlay}>
@@ -148,7 +149,12 @@ export default function PostDetail() {
         console.warn("⚠️ No post found for ID:", post_id);
       } else {
         setPost(postData);
-        fetchMediaFiles(postData.id);
+        const files = await fetchMediaFiles(postData.id);
+        const cleaned = (files || []).filter(
+        (file): file is { url: string; type: string; image_url: string } => file !== null
+        );
+        setMediaFiles(cleaned);
+        setLoading(false);
       }
     } catch (error) {
       console.error("ERROR - fetchPost() crashed:", error);
@@ -161,49 +167,37 @@ export default function PostDetail() {
         .from('post_images')
         .select('image_url, file_type')
         .eq('post_id', postId);
-
+  
       if (mediaError) {
         console.error("❌ Error fetching media files:", mediaError);
         return;
       }
-
-      const updatedMediaFiles = await Promise.all(
-        mediaData.map(async (item: { image_url: string, file_type?: string }) => {
-          const filePath = item.image_url.split("/object/public/posts/")[1];
-
-          if (!filePath) {
-            console.warn("⚠️ Could not extract file path from:", item.image_url);
-            return null;
-          }
-
-          const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-            .from('posts')
-            .createSignedUrl(filePath, 60 * 60 * 24);
-
-          if (signedUrlError) {
-            console.error("❌ Error creating signed URL:", signedUrlError);
-            return null;
-          }
-
-          // Determine file type - use database value if available, otherwise detect from URL
-          let fileType = item.file_type;
-          if (!fileType) {
-            fileType = isVideoFile(signedUrlData.signedUrl) ? 'video' : 'image';
-          }
-
-          return {
-            url: signedUrlData.signedUrl,
-            type: fileType,
-            image_url: item.image_url, 
-          };
-        })
-      );
-
-      setMediaFiles(updatedMediaFiles.filter((item): item is {url: string, type: string, image_url: string} => item !== null));
-    } catch (error) {
-      console.error("❌ fetchMediaFiles() crashed:", error);
+  
+      const updatedMediaFiles = mediaData.map((item: { image_url: string, file_type?: string }) => {
+        // Extract path after "/object/public/"
+        const filePath = item.image_url.split("/object/public/")[1];
+  
+        if (!filePath) {
+          console.warn("⚠️ Could not extract file path from:", item.image_url);
+          return null;
+        }
+  
+        const proxiedUrl = `https://blue-cherry-c9d7.graysonlottes.workers.dev/${filePath}`;
+  
+        // Infer file type or use provided type
+        const fileType = item.file_type || (proxiedUrl.endsWith('.mp4') ? 'video' : 'image');
+  
+        return {
+          url: proxiedUrl,
+          type: fileType,
+          image_url: item.image_url,
+        };
+      }).filter(Boolean); // Remove any nulls
+  
+      return updatedMediaFiles || [];
+    } catch (err) {
+      console.error("❌ Unexpected error in fetchMediaFiles:", err);
     }
-    setLoading(false);
   };
 
   const openMediaViewer = (index: number) => {
