@@ -99,14 +99,14 @@ const GlobalStyles = StyleSheet.create({
     color: "#2e78b7",
   },
   navButton: {
-    width: 40,           // Add this
-  height: 40,          // Add this
-  paddingVertical: 0,  // Optional: remove padding to avoid extra space
-  paddingHorizontal: 0,// Optional: remove padding to avoid extra space
-  borderRadius: 20,    // Make it round
-  backgroundColor: "#FFAAAC",
-  justifyContent: "center",
-  alignItems: "center",
+    width: 50,           // Add this
+    height: 50,          // Add this
+    paddingVertical: 0,  // Optional: remove padding to avoid extra space
+    paddingHorizontal: 0,// Optional: remove padding to avoid extra space
+    borderRadius: 25,    // Make it round
+    backgroundColor: "#F5F5F5",
+    justifyContent: "center",
+    alignItems: "center",
   },
   navButtonText: {
     fontSize: 16,
