@@ -368,44 +368,46 @@ export default function ProfilePage(): JSX.Element {
               )}
             </View>
 
-            <View style={styles.profilePictureActions}>
-              <TouchableOpacity
-                style={styles.profilePictureButton}
-                onPress={pickProfileImage}
-                disabled={uploadingImage}
-              >
-                <Text style={styles.profilePictureButtonText}>
-                  {profileImageUri ? 'Change Photo' : 'Add Photo'}
-                </Text>
-              </TouchableOpacity>
-
-              {profileImageUri && (
+            {isEditing && (
+              <View style={styles.profilePictureActions}>
                 <TouchableOpacity
-                  style={[styles.profilePictureButton, styles.removeButton]}
-                  onPress={() => {
-                    if (Platform.OS === 'web') {
-                      if (confirm('Are you sure you want to remove your profile picture?')) {
-                        removeProfileImage()
-                      }
-                    } else {
-                      Alert.alert(
-                        'Remove Profile Picture',
-                        'Are you sure you want to remove your profile picture?',
-                        [
-                          { text: 'Cancel', style: 'cancel' },
-                          { text: 'Remove', onPress: removeProfileImage, style: 'destructive' },
-                        ]
-                      )
-                    }
-                  }}
+                  style={styles.profilePictureButton}
+                  onPress={pickProfileImage}
                   disabled={uploadingImage}
                 >
-                  <Text style={[styles.profilePictureButtonText, styles.removeButtonText]}>
-                    Remove Photo
+                  <Text style={styles.profilePictureButtonText}>
+                    {profileImageUri ? 'Change Photo' : 'Add Photo'}
                   </Text>
                 </TouchableOpacity>
-              )}
-            </View>
+
+                {profileImageUri && (
+                  <TouchableOpacity
+                    style={[styles.profilePictureButton, styles.removeButton]}
+                    onPress={() => {
+                      if (Platform.OS === 'web') {
+                        if (confirm('Are you sure you want to remove your profile picture?')) {
+                          removeProfileImage()
+                        }
+                      } else {
+                        Alert.alert(
+                          'Remove Profile Picture',
+                          'Are you sure you want to remove your profile picture?',
+                          [
+                            { text: 'Cancel', style: 'cancel' },
+                            { text: 'Remove', onPress: removeProfileImage, style: 'destructive' },
+                          ]
+                        )
+                      }
+                    }}
+                    disabled={uploadingImage}
+                  >
+                    <Text style={[styles.profilePictureButtonText, styles.removeButtonText]}>
+                      Remove Photo
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
           </View>
           
           <View style={GlobalStyles.infoContainer}>
