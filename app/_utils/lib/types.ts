@@ -6,14 +6,9 @@ export type Profile = {
   email: string
   username: string | null
   updated_at: string
+  pfp_url: string | null
 }
 
-// Feeder type
-export type Feeder = {
-  id: number
-  foodbrand: string | null
-  created_at: string
-}
 
 // User-Feeder relationship type
 export type UserOwnedFeeder = {
