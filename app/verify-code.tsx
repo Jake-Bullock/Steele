@@ -19,7 +19,7 @@ export default function VerifyCodeScreen(): JSX.Element {
         type: 'signup'
       })
       if (error) throw error
-      router.replace('/(home)')
+      router.replace('/')
     } catch (error: any) {
       Alert.alert('Error', error.message)
     } finally {
