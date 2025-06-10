@@ -25,6 +25,7 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import supabase from '../../_utils/lib/supabase';
+import PostTypeFeild from '../../components/PostTypeFields';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -268,6 +269,11 @@ export default function PostDetail() {
 
   return (
     <>
+      <PostTypeFeild
+        postId={Array.isArray(post_id) ? post_id[0] : post_id}
+        tableName={post.post_type + '_details'}
+      />
+        
       {isPostOwner && (
         <View style={{ position: 'absolute', top: 40, right: 20, zIndex: 2000 }}>
           <TouchableOpacity
