@@ -108,6 +108,10 @@ const PostThumbnail = ({
       router.push("/screens/Posts");
     }
   };
+  const handleEdit = () => {
+    router.push({ pathname: '/screens/PostDetail/[post_id]', params: { post_id: postId, edit: 'true' } });
+    console.log('Edit post');
+  };
 
   if (loading) {
     return (
@@ -153,7 +157,8 @@ const PostThumbnail = ({
             {/* Place your dropdown content here */}
             <TouchableOpacity
               onPress={() => {
-                /* Example action */ setShowDropdown(false);
+                handleEdit();
+                setShowDropdown(false);
               }}
             >
               <Image
