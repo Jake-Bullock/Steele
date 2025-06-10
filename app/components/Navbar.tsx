@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator, Image } from "react-na
 import { useRouter, usePathname } from "expo-router";
 import { useSupabase } from "../_utils/contexts/SupabaseProvider";
 import GlobalStyles from "../../assets/styles/GlobalStyles";
-import { getUserProfilePicture } from "../_utils/lib/getUserProfilePicture.ts";
+import { getUserProfilePicture } from "../_utils/lib/getUserProfilePicture";
 
 export default function Navbar() {
   const router = useRouter();

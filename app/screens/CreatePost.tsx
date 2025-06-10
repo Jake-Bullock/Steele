@@ -1,5 +1,6 @@
 import uuid from "react-native-uuid";
 import React, { useState } from "react";
+import { Picker } from "@react-native-picker/picker";
 import { useVideoPlayer, VideoView } from "expo-video";
 import {
   View,
@@ -28,6 +29,10 @@ export default function CreatePost() {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const { session } = useSupabase()
+
+  const [postType, setPostType] = useState<"hunting" | "fishing">("hunting");
+  const [animal, setAnimal] = useState("");
+  const [fish, setFish] = useState("");
 
   // Helper function to get file extension and content type
   const getFileInfo = (type: string, uri: string) => {
@@ -255,6 +260,7 @@ export default function CreatePost() {
             description,
             user_id: user.id,
             qr_code_url: `PostDetail/${postId}`,
+            post_type: postType,
           },
         ])
         .select();
@@ -264,11 +270,23 @@ export default function CreatePost() {
       if (!postData || postData.length === 0) {
         throw new Error("Failed to create post");
       }
+      // 3. Insert into the correct details table
+      if (postType === "hunting") {
+        const { error: detailsError } = await supabase.from("hunting_details").insert([
+        { post_id: postId, animal: animal }
+      ]);
+      if (detailsError) throw detailsError;
+      } else if (postType === "fishing") {
+        const { error: detailsError } = await supabase.from("fishing_details").insert([
+        { post_id: postId, fish: fish }
+      ]);
+      if (detailsError) throw detailsError;
+      }
 
       console.log("postId:::", postId);
       console.log("post Data:::", postData);
 
-      // 3. Associate files with the post
+      // 4. Associate files with the post
       if (fileUrls.length > 0) {
         for (let i = 0; i < fileUrls.length; i++) {
           const url = fileUrls[i];
@@ -311,6 +329,36 @@ export default function CreatePost() {
     return (
       <ScrollView style={styles.container}>
         <Text style={styles.title}>Create a Post</Text>
+          <View style={{ marginBottom: 20 }}>
+          <Text style={{ fontWeight: "bold", marginBottom: 5 }}>Post Type</Text>
+          <View style={{ borderWidth: 1, borderColor: "#ccc", borderRadius: 5 }}>
+            <Picker
+              selectedValue={postType}
+              onValueChange={(itemValue) => setPostType(itemValue)}
+              style={{ height: 40 }}
+            >
+              <Picker.Item label="Hunting" value="hunting" />
+              <Picker.Item label="Fishing" value="fishing" />
+            </Picker>
+          </View>
+        </View>
+
+        {postType === "hunting" && (
+          <TextInput
+            style={styles.input}
+            placeholder="Enter Animal"
+            value={animal}
+            onChangeText={setAnimal}
+          />
+        )}
+        {postType === "fishing" && (
+          <TextInput
+            style={styles.input}
+            placeholder="Enter Fish"
+            value={fish}
+            onChangeText={setFish}
+          />
+        )}
         <TextInput
           style={styles.input}
           placeholder="Enter Title"
