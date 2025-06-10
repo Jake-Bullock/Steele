@@ -25,7 +25,8 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import supabase from '../../_utils/lib/supabase';
-import PostTypeFeild from '../../components/PostTypeFields';
+import FishingFieldDisplay from '../../components/FishingFieldDisplay';
+import HuntingFieldDisplay from '../../components/HuntingFieldDisplay';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -269,10 +270,7 @@ export default function PostDetail() {
 
   return (
     <>
-      <PostTypeFeild
-        postId={Array.isArray(post_id) ? post_id[0] : post_id}
-        tableName={post.post_type + '_details'}
-      />
+      
         
       {isPostOwner && (
         <View style={{ position: 'absolute', top: 40, right: 20, zIndex: 2000 }}>
@@ -327,6 +325,7 @@ export default function PostDetail() {
         </View>
       )}
       <ScrollView style={styles.container}>
+        
         {isEditing ? (
           <TextInput
             style={styles.titleEdit}
@@ -335,6 +334,15 @@ export default function PostDetail() {
           />
         ) : (
           <Text style={styles.title}>{post.title}</Text>
+        )}
+        {post.post_type === 'fishing' ? (  
+          <FishingFieldDisplay
+            postId={Array.isArray(post_id) ? post_id[0] : post_id}
+          />
+        ) : (
+          <HuntingFieldDisplay
+            postId={Array.isArray(post_id) ? post_id[0] : post_id}
+          />
         )}
         {isEditing ? (
           <TextInput

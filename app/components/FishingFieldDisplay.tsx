@@ -6,18 +6,18 @@ interface FishingFieldDisplayProps {
   postId: string;
 }
 
-const PostDetails = ({ postId, tableName = "post" }: PostDetailsProps) => {
+const PostDetails = ({ postId }: FishingFieldDisplayProps) => {
   const [postData, setPostData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  console.log("PostDetails component mounted with postId:", postId, "and tableName:", tableName);
+  console.log("FishingPostDetails component mounted with postId:", postId);
 
   useEffect(() => {
     const fetchPostData = async () => {
       setLoading(true);
       const { data, error } = await supabase
         .from("fishing_details")
-        .select("fish")
+        .select("*")
         .eq("post_id", postId)
         .single();
 
@@ -32,7 +32,7 @@ const PostDetails = ({ postId, tableName = "post" }: PostDetailsProps) => {
     };
     
     fetchPostData();
-  }, [postId, tableName]);
+  }, [postId]);
   
   if (loading) {
     return (
@@ -52,13 +52,15 @@ const PostDetails = ({ postId, tableName = "post" }: PostDetailsProps) => {
 
   return (
     <ScrollView style={styles.container}>
+    <View style={styles.grid}>
       {Object.entries(postData).map(([key, value]) => (
-        <View key={key} style={styles.row}>
+        <View key={key} style={styles.gridItem}>
           <Text style={styles.label}>{key}:</Text>
           <Text style={styles.value}>{String(value)}</Text>
         </View>
       ))}
-    </ScrollView>
+    </View>
+  </ScrollView>
   );
 };
 
@@ -73,18 +75,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 32,
   },
-  row: {
+  grid: {
     flexDirection: "row",
-    marginBottom: 12,
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  gridItem: {
+    width: "48%",
+    backgroundColor: "#f5f5f5",
+    marginBottom: 16,
+    borderRadius: 8,
+    padding: 12,
+    justifyContent: "center",
     alignItems: "flex-start",
   },
   label: {
     fontWeight: "bold",
-    marginRight: 8,
-    minWidth: 90,
+    marginBottom: 4,
   },
   value: {
-    flex: 1,
     flexWrap: "wrap",
   },
 });
