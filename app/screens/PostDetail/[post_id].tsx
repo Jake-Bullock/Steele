@@ -98,10 +98,7 @@ export default function PostDetail() {
   const [loading, setLoading] = useState(true);
   const [selectedMediaIndex, setSelectedMediaIndex] = useState<number | null>(null);
   const [isMediaViewerVisible, setIsMediaViewerVisible] = useState(false);
-  const [deletedMedia, setDeletedMedia] = useState<string[]>([]);
 
-  const [originalPost, setOriginalPost] = useState<any>(null);
-  const [originalMediaFiles, setOriginalMediaFiles] = useState<any[]>([]);
 
 
   // Animation values
@@ -244,10 +241,7 @@ export default function PostDetail() {
     }
   };
 
-  const handleDeleteMedia = (index: number) => {
-    setDeletedMedia(prev => [...prev, mediaFiles[index].image_url]);
-    setMediaFiles(prev => prev.filter((_, i) => i !== index));
-};
+
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -282,36 +276,12 @@ export default function PostDetail() {
               {isEditing ? 'Done' : 'Edit'}
             </Text>
           </TouchableOpacity>
-
-          
-          {isEditing && ( // Add a Cancel button that only shows in edit mode:
-            <TouchableOpacity
-              style={{ position: 'absolute', top: 40, right: 20, zIndex: 2000 }}
-              onPress={() => {
-                router.replace({
-                  pathname: `/screens/PostDetail/${post_id}`,
-                  params: { edit: 'false' },
-                });
-              }}
-            >
-              <Text style={{ fontSize: 18, color: '#FF3B30', fontWeight: 'bold' }}>
-                Cancel
-              </Text>
-            </TouchableOpacity>
-          )}
         </View>
       )}
       <ScrollView style={styles.container}>
+       
+        <Text style={styles.title}>{post.title}</Text>
         
-        {isEditing ? (
-          <TextInput
-            style={styles.titleEdit}
-            value={post.title}
-            onChangeText={text => setPost({ ...post, title: text })}
-          />
-        ) : (
-          <Text style={styles.title}>{post.title}</Text>
-        )}
         {post.post_type === 'fishing' ? (  
           <FishingFieldDisplay
             postId={Array.isArray(post_id) ? post_id[0] : post_id}
@@ -321,16 +291,9 @@ export default function PostDetail() {
             postId={Array.isArray(post_id) ? post_id[0] : post_id}
           />
         )}
-        {isEditing ? (
-          <TextInput
-            style={styles.titleEdit}
-            value={post.description}
-            onChangeText={text => setPost({ ...post, description: text })}
-            multiline
-          />
-        ) : (
-          <Text style={styles.description}>{post.description}</Text>
-        )}
+      
+        <Text style={styles.description}>{post.description}</Text>
+        
         {mediaFiles.length > 0 && (
           <View style={styles.mediaContainer}>
             {mediaFiles.map((mediaFile, index) => (
@@ -340,22 +303,6 @@ export default function PostDetail() {
                   style={styles.media}
                   onPress={() => openMediaViewer(index)}
                 />
-                {isEditing && (
-                  <TouchableOpacity
-                    style={{
-                      position: 'absolute',
-                      top: 5,
-                      right: 5,
-                      backgroundColor: 'rgba(255,0,0,0.7)',
-                      borderRadius: 12,
-                      padding: 4,
-                      zIndex: 10,
-                    }}
-                    onPress={() => handleDeleteMedia(index)}
-                  >
-                    <Text style={{ color: 'white', fontWeight: 'bold' }}>✕</Text>
-                  </TouchableOpacity>
-                )}
                 {/* Media type indicator */}
                 <View style={styles.mediaTypeIndicator}>
                   <Text style={styles.mediaTypeText}>
