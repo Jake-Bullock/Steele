@@ -323,7 +323,7 @@ export default function EditPostDetail() {
             </View>
           ) : (
             <View style={styles.inputContainer}>
-                <Text style={styles.label}>Fish:</Text>
+                <Text style={styles.label}>Animal:</Text>
                 <TextInput
                     style={styles.detailsInput}
                     value={details}

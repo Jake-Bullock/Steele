@@ -6,6 +6,19 @@ interface FishingFieldDisplayProps {
   postId: string;
 }
 
+// This is the list of acceptable post details that we want to display
+const acceptablePostDetails= [
+  "created_at",
+  "fish",
+];
+
+// for display purposes, we can map these keys to more user-friendly labels
+const displayLabels: Record<string, string> = {
+  created_at: "Time & Date",
+  fish: "Fish",
+};
+
+
 const PostDetails = ({ postId }: FishingFieldDisplayProps) => {
   const [postData, setPostData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -52,15 +65,26 @@ const PostDetails = ({ postId }: FishingFieldDisplayProps) => {
 
   return (
     <ScrollView style={styles.container}>
-    <View style={styles.grid}>
-      {Object.entries(postData).map(([key, value]) => (
-        <View key={key} style={styles.gridItem}>
-          <Text style={styles.label}>{key}:</Text>
-          <Text style={styles.value}>{String(value)}</Text>
-        </View>
-      ))}
-    </View>
-  </ScrollView>
+      <View style={styles.grid}>
+        {Object.entries(postData)
+          .filter(([key]) => acceptablePostDetails.includes(key))
+          .map(([key, value]) => (
+            <View key={key} style={styles.gridItem}>
+              <Text style={styles.label}>{displayLabels[key] || key}</Text>
+              <Text style={styles.value}>
+                {key === "created_at"
+                  ? (() => {
+                      const dateObj = new Date(value);
+                      const time = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      const date = dateObj.toLocaleDateString();
+                      return `${time} • ${date}`;
+                    })()
+                  : String(value)}
+              </Text>
+            </View>
+          ))}
+      </View>
+    </ScrollView>
   );
 };
 

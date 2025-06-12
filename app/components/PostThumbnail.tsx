@@ -109,7 +109,7 @@ const PostThumbnail = ({
     }
   };
   const handleEdit = () => {
-    router.push({ pathname: '/screens/PostDetail/[post_id]', params: { post_id: postId, edit: 'true' } });
+    router.push({ pathname: '/screens/EditPostDetail', params: { post_id: postId} });
     console.log('Edit post');
   };
 
