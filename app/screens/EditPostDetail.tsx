@@ -14,8 +14,6 @@ import {
   TextInput,
 } from 'react-native';
 import supabase from '../_utils/lib/supabase';
-import FishingFieldDisplay from '../components/FishingFieldDisplay';
-import HuntingFieldDisplay from '../components/HuntingFieldDisplay';
 
 export default function EditPostDetail() {
   const { post_id } = useLocalSearchParams();
@@ -24,6 +22,7 @@ export default function EditPostDetail() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [mediaFiles, setMediaFiles] = useState<{url: string, type: string}[]>([]);
 
   // Form state
   const [title, setTitle] = useState('');
@@ -31,6 +30,8 @@ export default function EditPostDetail() {
 
   const [postType, setPostType] = useState(''); 
   const [details, setPostDetails] = useState('');       
+
+  const [deletedMedia, setDeletedMedia] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -79,7 +80,11 @@ export default function EditPostDetail() {
         router.back();
         return;
       }
-
+      const files = await fetchMediaFiles(postData.id);
+      const cleaned = (files || []).filter(
+      (file): file is { url: string; type: string; image_url: string } => file !== null
+      );
+      setMediaFiles(cleaned);
       setPost(postData);
       setTitle(postData.title || '');
       setDescription(postData.description || '');
@@ -123,10 +128,50 @@ export default function EditPostDetail() {
     }    
   }
 
+  const fetchMediaFiles = async (postId: string) => {
+    try {
+      const { data: mediaData, error: mediaError } = await supabase
+        .from('post_images')
+        .select('image_url, file_type')
+        .eq('post_id', postId);
+  
+      if (mediaError) {
+        console.error("❌ Error fetching media files:", mediaError);
+        return;
+      }
+  
+      const updatedMediaFiles = mediaData.map((item: { image_url: string, file_type?: string }) => {
+        // Extract path after "/object/public/"
+        const filePath = item.image_url.split("/object/public/")[1];
+  
+        if (!filePath) {
+          console.warn("⚠️ Could not extract file path from:", item.image_url);
+          return null;
+        }
+  
+        const proxiedUrl = `https://blue-cherry-c9d7.graysonlottes.workers.dev/${filePath}`;
+  
+        // Infer file type or use provided type
+        const fileType = item.file_type || (proxiedUrl.endsWith('.mp4') ? 'video' : 'image');
+  
+        return {
+          url: proxiedUrl,
+          type: fileType,
+          image_url: item.image_url,
+        };
+      }).filter(Boolean); // Remove any nulls
+  
+      return updatedMediaFiles || [];
+    } catch (err) {
+      console.error("❌ Unexpected error in fetchMediaFiles:", err);
+    }
+  };
+
   const handleSave = async () => {
+    console.log('deletedMedia URLs:', deletedMedia);
     if (!title.trim()) {
-      Alert.alert('Error', 'Title is required');
-      return;
+        Alert.alert('Error', 'Title is required');
+        return;
     }
 
     setSaving(true);
@@ -143,6 +188,19 @@ export default function EditPostDetail() {
       if (updateError) {
         throw updateError;
       }
+
+      // update post_images
+      for (const file of deletedMedia) {
+        const { error: deleteError } = await supabase
+          .from('post_images')
+          .delete()
+          .eq('image_url', file)
+          .eq('post_id', post_id);
+        if (deleteError) {
+          throw deleteError;
+        }
+      }
+
       // update post details based on post type
       if (postType === 'fishing') {
         const { error: fishingError } = await supabase
@@ -215,6 +273,7 @@ export default function EditPostDetail() {
       </View>
     );
   }
+  //console.log('mediaFiles:', mediaFiles);
 
   return (
     <View style={styles.container}>
@@ -295,8 +354,28 @@ export default function EditPostDetail() {
           <Text style={styles.characterCount}>{description.length}/500</Text>
         </View>
 
+
+        {/* Media Grid */}
+        {mediaFiles.filter(file => !deletedMedia.includes(file.image_url)).length > 0 && (
+        <View style={styles.mediaGrid}>
+            {mediaFiles
+            .filter(file => !deletedMedia.includes(file.image_url))
+            .map((file, idx) => (
+                <View key={file.url} style={styles.mediaWrapper}>
+                <Image source={{ uri: file.url }} style={styles.mediaImage} />
+                <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => setDeletedMedia(prev => [...prev, file.image_url])}
+                >
+                    <Text style={styles.deleteButtonText}>✕</Text>
+                </TouchableOpacity>
+                </View>
+            ))}
+        </View>
+        )}
         {/* Bottom spacing */}
         <View style={styles.bottomSpacing} />
+
       </ScrollView>
     </View>
   );
@@ -424,32 +503,10 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
-  mediaWrapper: {
-    width: '48%',
-    marginBottom: 15,
-    position: 'relative',
-  },
   media: {
     width: '100%',
     height: 150,
     borderRadius: 8,
-  },
-  deleteButton: {
-    position: 'absolute',
-    top: 5,
-    right: 5,
-    backgroundColor: 'rgba(255,0,0,0.8)',
-    borderRadius: 12,
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  deleteButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 14,
   },
   mediaTypeIndicator: {
     position: 'absolute',
@@ -491,4 +548,41 @@ const styles = StyleSheet.create({
   bottomSpacing: {
     height: 50,
   },
+  mediaGrid: {
+  flexDirection: 'row',
+  flexWrap: 'wrap',
+  justifyContent: 'flex-start',
+  marginTop: 10,
+  marginBottom: 20,
+},
+mediaWrapper: {
+  width: '30%',
+  aspectRatio: 1,
+  margin: '1.5%',
+  position: 'relative',
+  borderRadius: 8,
+  overflow: 'hidden',
+},
+mediaImage: {
+  width: '100%',
+  height: '100%',
+  borderRadius: 8,
+},
+deleteButton: {
+  position: 'absolute',
+  top: 5,
+  right: 5,
+  backgroundColor: 'rgba(255,0,0,0.8)',
+  borderRadius: 12,
+  width: 24,
+  height: 24,
+  justifyContent: 'center',
+  alignItems: 'center',
+  zIndex: 10,
+},
+deleteButtonText: {
+  color: 'white',
+  fontWeight: 'bold',
+  fontSize: 16,
+},
 });
