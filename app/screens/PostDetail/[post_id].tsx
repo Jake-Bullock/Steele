@@ -268,54 +268,16 @@ export default function PostDetail() {
 
   return (
     <>
-      <View style={{ position: 'absolute', top: 40, left: 20, zIndex: 2000 }}>
-        <TouchableOpacity
-          onPress={() => router.push({ 
-            pathname: '/screens/EditPostDetail',
-            params: { post_id: Array.isArray(post_id) ? post_id[0] : post_id },
-          })}
-          style={{
-            backgroundColor: '#007AFF',
-            paddingHorizontal: 16,
-            paddingVertical: 8,
-            borderRadius: 8,
-          }}
-        >
-          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
-            Go to Explore
-          </Text>
-        </TouchableOpacity>
-      </View>
+     
         
       {isPostOwner && (
         <View style={{ position: 'absolute', top: 40, right: 20, zIndex: 2000 }}>
           <TouchableOpacity
-            onPress={async () => {
-              if (!isEditing) {
-                setOriginalPost(post);
-                setOriginalMediaFiles(mediaFiles);
-                setIsEditing(true);
-              } else {
-                // Done logic (already present)
-                await supabase
-                  .from('post')
-                  .update({
-                    title: post.title,
-                    description: post.description,
-                  })
-                  .eq('id', post_id);
-                for (const imageUrl of deletedMedia) {
-                  await supabase
-                    .from('post_images')
-                    .delete()
-                    .eq('image_url', imageUrl)
-                    .eq('post_id', post_id);
-                }
-                setDeletedMedia([]);
-                setIsEditing(false);
-              }
-            }}
-          >
+              onPress={() => router.push({ 
+                pathname: '/screens/EditPostDetail',
+                params: { post_id: Array.isArray(post_id) ? post_id[0] : post_id },
+              })}
+              >
             <Text style={{ fontSize: 18, color: '#007AFF', fontWeight: 'bold' }}>
               {isEditing ? 'Done' : 'Edit'}
             </Text>

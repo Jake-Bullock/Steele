@@ -11,6 +11,7 @@ import {
   ScrollView, 
   TouchableOpacity, 
   Alert,
+  Platform,
   TextInput,
 } from 'react-native';
 import supabase from '../_utils/lib/supabase';
@@ -234,28 +235,26 @@ export default function EditPostDetail() {
   };
 
   const handleCancel = () => {
-    // Check if there are any changes
-    const hasChanges = 
-      title !== (post?.title || '') || 
-      description !== (post?.description || '');
-
-    if (hasChanges) {
-      Alert.alert(
-        'Discard Changes',
-        'Are you sure you want to discard your changes?',
-        [
-          { text: 'Keep Editing', style: 'cancel' },
-          {
-            text: 'Discard',
-            style: 'destructive',
-            onPress: () => router.back()
-          }
-        ]
-      );
+    if (Platform.OS === 'web') {
+        const confirmed = window.confirm('Are you sure you want to cancel editing this post?');
+        if (confirmed) {
+        router.replace(`/screens/PostDetail/${post_id}`);
+        }
     } else {
-      router.back();
+        Alert.alert(
+        'Discard Changes?',
+        'Are you sure you want to cancel editing this post?',
+        [
+            { text: 'No', style: 'cancel' },
+            {
+            text: 'Yes',
+            style: 'destructive',
+            onPress: () => router.replace(`/screens/PostDetail/${post_id}`)
+            }
+        ]
+        );
     }
-  };
+    };
 
   if (loading) {
     return (
