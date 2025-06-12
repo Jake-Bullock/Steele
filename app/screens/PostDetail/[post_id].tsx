@@ -31,8 +31,6 @@ import HuntingFieldDisplay from '../../components/HuntingFieldDisplay';
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 
-
-
 // Helper function to determine if URL is a video
 const isVideoFile = (url: string) => {
   const videoExtensions = ['.mp4', '.mov', '.webm', '.avi', '.mkv', '.m4v'];
@@ -270,7 +268,24 @@ export default function PostDetail() {
 
   return (
     <>
-      
+      <View style={{ position: 'absolute', top: 40, left: 20, zIndex: 2000 }}>
+        <TouchableOpacity
+          onPress={() => router.push({ 
+            pathname: '/screens/EditPostDetail',
+            params: { post_id: Array.isArray(post_id) ? post_id[0] : post_id },
+          })}
+          style={{
+            backgroundColor: '#007AFF',
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            borderRadius: 8,
+          }}
+        >
+          <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 16 }}>
+            Go to Explore
+          </Text>
+        </TouchableOpacity>
+      </View>
         
       {isPostOwner && (
         <View style={{ position: 'absolute', top: 40, right: 20, zIndex: 2000 }}>
